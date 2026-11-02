@@ -32,7 +32,7 @@ GitHub Release 一旦公开，应用内更新即可读到它，早于这项事�
 node www/scripts/sync-release.mjs --tag v0.1.0-alpha.1 \
   --output /tmp/cage-release-check/release.json \
   --archive-directory /tmp/cage-release-check/assets
-bash scripts/verify-macos-release.sh /tmp/cage-release-check/assets
+make verify-release RELEASE_DIR=/tmp/cage-release-check/assets
 ```
 
 ## 主页与措辞同步

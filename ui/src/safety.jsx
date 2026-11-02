@@ -11,7 +11,8 @@ import {
   Settings2,
   ChevronDown,
 } from "lucide-react";
-import { api, writeClipboard } from "./api";
+import { api } from "./api";
+import { writeClipboard } from "./desktop";
 import { Modal } from "./views";
 import { networkState, reportForSharing } from "./safety-state.mjs";
 

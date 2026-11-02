@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowDownToLine, Check, LoaderCircle, RefreshCw } from "lucide-react";
-import { native, nativeAvailable } from "./api";
+import { native, nativeAvailable } from "./desktop";
 import { Modal } from "./views";
 
 const activePhases = new Set(["checking", "downloading", "downloaded", "verifying", "installing"]);

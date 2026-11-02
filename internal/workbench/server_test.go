@@ -12,10 +12,11 @@ import (
 
 	"github.com/sylvinus/agent-vm/internal/cage"
 	"github.com/sylvinus/agent-vm/internal/managedproxy"
+	"github.com/sylvinus/agent-vm/internal/settings"
 	"github.com/sylvinus/agent-vm/internal/vmname"
 )
 
-func testServer(t *testing.T) *Server {
+func testService(t *testing.T) *Service {
 	t.Helper()
 	profile := t.TempDir()
 	path := filepath.Join(profile, "config.json")
@@ -35,7 +36,14 @@ func testServer(t *testing.T) *Server {
 	if e := writePrivate(path, c); e != nil {
 		t.Fatal(e)
 	}
-	return &Server{profile: profile, configPath: path, origin: "http://localhost:17777", token: strings.Repeat("a", 64), session: strings.Repeat("b", 64), preferences: Preferences{Keyboard: "mac"}, terminals: map[string]*terminalSession{}}
+	return &Service{profile: profile, configPath: path, preferences: Preferences{Keyboard: "mac"}}
+}
+
+func testServer(t *testing.T) *Server {
+	t.Helper()
+	service := testService(t)
+	service.origin = "http://localhost:17777"
+	return &Server{Service: service, token: strings.Repeat("a", 64), session: strings.Repeat("b", 64)}
 }
 func request(s *Server, method, path, origin, body string, auth bool) *httptest.ResponseRecorder {
 	r := httptest.NewRequest(method, s.origin+path, strings.NewReader(body))
@@ -107,44 +115,11 @@ func TestBootstrapRequiresSecretAndIssuesHostOnlyCookie(t *testing.T) {
 		t.Fatalf("unsafe cookie attributes: %+v", c)
 	}
 }
-func TestSettingsPreserveSecretsAndRejectHostSharing(t *testing.T) {
-	s := testServer(t)
-	old, e := cage.Load(s.configPath)
-	if e != nil {
-		t.Fatal(e)
-	}
-	input := settingsView(old, s.preferences)
-	input.Keyboard = "native"
-	next, _, e := proposedSettings(input, old, s.profile)
-	if e != nil {
-		t.Fatal(e)
-	}
-	if next.ProxyURL != old.ProxyURL {
-		t.Fatal("blank password erased existing authentication")
-	}
-	input.Workspace = s.profile
-	if _, _, e = proposedSettings(input, old, s.profile); e == nil {
-		t.Fatal("profile may be shared")
-	}
-	input.Workspace = filepath.Dir(s.profile)
-	if _, _, e = proposedSettings(input, old, s.profile); e == nil {
-		t.Fatal("profile ancestor may be shared")
-	}
-	workspace := t.TempDir()
-	link := filepath.Join(workspace, "private-link")
-	if e = os.Symlink(s.profile, link); e != nil {
-		t.Fatal(e)
-	}
-	input.Workspace = link
-	if _, _, e = proposedSettings(input, old, s.profile); e == nil {
-		t.Fatal("symlink bypassed share guard")
-	}
-}
 func TestInvalidSettingsDoNotReplaceCurrentProfile(t *testing.T) {
 	s := testServer(t)
 	before, _ := os.ReadFile(s.configPath)
 	old, _ := cage.Load(s.configPath)
-	input := settingsView(old, s.preferences)
+	input := settings.View(old, s.preferences)
 	input.Timezone = "Invented/Invalid"
 	body, _ := json.Marshal(input)
 	w := request(s, "POST", "/api/settings", s.origin, string(body), true)
@@ -162,7 +137,7 @@ func TestKeyboardPreferenceDoesNotRestartOrChangeNetwork(t *testing.T) {
 	s.ready = true
 	p := s.preferences
 	p.Keyboard = "native"
-	if e := s.apply(savedProfile{old, p}, true); e != nil {
+	if e := s.apply(savedProfile{Config: old, Preferences: p}, true); e != nil {
 		t.Fatal(e)
 	}
 	after, _ := cage.Load(s.configPath)
@@ -213,7 +188,7 @@ func TestRestoreCannotReplaceManagedEndpoint(t *testing.T) {
 	old, _ := cage.Load(s.configPath)
 	bad := old
 	bad.ProxyURL = "socks5://127.0.0.1:1"
-	if e := s.apply(savedProfile{bad, s.preferences}, true); e != nil {
+	if e := s.apply(savedProfile{Config: bad, Preferences: s.preferences}, true); e != nil {
 		t.Fatal(e)
 	}
 	after, _ := loadConfig(s.configPath)

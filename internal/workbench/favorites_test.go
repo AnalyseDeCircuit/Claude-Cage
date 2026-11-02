@@ -36,8 +36,8 @@ func TestFavoritesPersistenceAndFolders(t *testing.T) {
 		t.Fatal("move failed")
 	}
 	post(fmt.Sprintf(`{"action":"save_folder","id":%q,"title":"工作"}`, folder))
-	// A new server instance reads the saved file without an active VM.
-	reopened := &Server{profile: s.profile}
+	// A new service instance reads the saved file without an active VM.
+	reopened := &Service{profile: s.profile}
 	f, err := reopened.readFavorites()
 	if err != nil || f.Folders[0].Title != "工作" || f.Items[0].URL != "https://example.com/new" {
 		t.Fatalf("persistence: %+v %v", f, err)

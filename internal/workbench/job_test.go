@@ -9,19 +9,66 @@ import (
 	"time"
 
 	"github.com/sylvinus/agent-vm/internal/cage"
+	"github.com/sylvinus/agent-vm/internal/environment"
 	"github.com/sylvinus/agent-vm/internal/vmname"
 )
+
+func waitJobFinished(t *testing.T, s *Service) Job {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		job := s.jobQueue().Snapshot()
+		if !job.Running {
+			return job
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("job did not finish", job)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func cancelTestJob(t *testing.T, s *Server) {
+	t.Helper()
+	s.jobQueue().Cancel()
+	waitJobFinished(t, s.Service)
+}
+
+// Keep a real job active for tests of busy-state and network rules. No task
+// state is injected: cancellation and completion go through the normal queue.
+func holdTestJob(t *testing.T, s *Server, kind string) {
+	t.Helper()
+	cancelTestJob(t, s)
+	started := make(chan struct{})
+	_, err := s.submit(kind, func() error {
+		ctx := s.operationContext()
+		close(started)
+		<-ctx.Done()
+		return ctx.Err()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cancelTestJob(t, s) })
+	select {
+	case <-started:
+	case <-time.After(3 * time.Second):
+		t.Fatal("test job did not start")
+	}
+}
 
 func TestStopPreemptsJobWithoutLosingStopResult(t *testing.T) {
 	s := testServer(t)
 	started, cancelled, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	var output environment.Operation
 	s.launch(httptest.NewRecorder(), "safety", func() error {
 		ctx := s.operationContext()
+		output = s.environmentOperation()
 		close(started)
 		<-ctx.Done()
 		close(cancelled)
 		s.setMessage("stale result")
-		_, _ = jobOutput{s}.Write([]byte("stale log"))
+		_, _ = output.Output.Write([]byte("stale log"))
 		return ctx.Err()
 	})
 	select {
@@ -46,10 +93,13 @@ func TestStopPreemptsJobWithoutLosingStopResult(t *testing.T) {
 	}
 	s.op.Lock()
 	defer s.op.Unlock()
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.job.Kind != "stop" || s.job.Running || s.job.Error != "" || s.job.Log != "" {
-		t.Fatalf("stale job overwrote stop: %+v", s.job)
+	// The command writer may outlive the old job's callback. It must stay bound
+	// to that job even after the stop has completed and no execution is active.
+	output.Progress("late stale progress")
+	_, _ = output.Output.Write([]byte("late stale log"))
+	job := s.jobQueue().Snapshot()
+	if output.JobID == "" || job.Kind != "stop" || job.Running || job.Error != "" || job.Log != "" || job.Message != "已完成" {
+		t.Fatalf("stale job overwrote stop: %+v", job)
 	}
 }
 
@@ -77,7 +127,7 @@ func TestPauseBypassesBusyQueueAndRevokesCheck(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	s.job = Job{Kind: "safety", Running: true}
+	holdTestJob(t, s, "safety")
 	s.checkCancel = cancel
 	w := request(s, "POST", "/api/safety/close", s.origin, "{}", true)
 	if w.Code != 200 {

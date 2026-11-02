@@ -1,21 +1,17 @@
 package workbench
 
 import (
+	"context"
 	"encoding/json"
-	"io"
-	"net"
 	"net/http"
-	"slices"
-	"strings"
-
-	"al.essio.dev/pkg/shellescape"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"slices"
+	"sync/atomic"
 	"testing"
 
-	"github.com/lima-vm/sshocker/pkg/reversesshfs"
-	"github.com/pkg/sftp"
-	"github.com/sylvinus/agent-vm/internal/mounts"
+	"github.com/sylvinus/agent-vm/internal/projects"
 	"github.com/sylvinus/agent-vm/internal/vmname"
 )
 
@@ -29,92 +25,38 @@ func TestProjectSelectionKeepsOneVMAndExistingSessionsOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 	originalVM := vmname.Name(s.environmentDir())
-	terminal := &terminalSession{id: "keep", title: "existing terminal"}
-	s.terminals[terminal.id] = terminal
+	terminal := startTestTerminal(t, s)
 	a, _ := filepath.EvalSymlinks(t.TempDir())
 	b, _ := filepath.EvalSymlinks(t.TempDir())
-	s.projectShares = map[string]*projectShare{a: {done: make(chan struct{})}, b: {done: make(chan struct{})}}
+	useProjectGuest(t, s)
 	for _, dir := range []string{a, b, a} {
 		next := s.preferences
 		next.Workspace = dir
 		// The configured proxy is unavailable. Project selection must not probe it.
-		if err := s.apply(savedProfile{cfg, next}, true); err != nil {
+		if err := s.apply(savedProfile{Config: cfg, Preferences: next}, true); err != nil {
 			t.Fatal(err)
 		}
 		if !s.ready || !s.vmRunning() || !s.networkPaused || vmname.Name(s.environmentDir()) != originalVM {
 			t.Fatal("project selection changed environment lifecycle or networking")
 		}
-		if s.terminals[terminal.id] != terminal || terminal.closed {
+		if s.terminals.Get(terminal.Info().ID) != terminal || terminal.Info().Closed {
 			t.Fatal("project selection interrupted the old terminal")
 		}
 	}
-	var saved sharedProjects
+	var saved struct {
+		Paths []string `json:"paths"`
+	}
 	data, err := os.ReadFile(filepath.Join(s.profile, "projects.json"))
-	if err != nil || json.Unmarshal(data, &saved) != nil || len(saved.Paths) != 2 {
+	if err != nil || json.Unmarshal(data, &saved) != nil || !slices.Equal(saved.Paths, []string{a, b}) {
 		t.Fatal("explicitly opened projects were not persisted uniquely")
 	}
 	next := s.preferences
 	next.Workspace = s.profile
-	if err := s.apply(savedProfile{cfg, next}, true); err == nil {
+	if err := s.apply(savedProfile{Config: cfg, Preferences: next}, true); err == nil {
 		t.Fatal("private directory accepted as a project")
 	}
-	if s.workspace() != a || terminal.closed || !s.ready {
+	if s.workspace() != a || terminal.Info().Closed || !s.ready {
 		t.Fatal("failed project selection changed the active environment")
-	}
-}
-
-func TestLiveProjectTransportConfinesReadsAndProtectsMetadata(t *testing.T) {
-	parent := t.TempDir()
-	root := filepath.Join(parent, "project")
-	if err := os.MkdirAll(filepath.Join(root, ".git"), 0700); err != nil {
-		t.Fatal(err)
-	}
-	outside := filepath.Join(parent, "secret")
-	if err := os.WriteFile(outside, []byte("private"), 0600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(parent, filepath.Join(root, "escape")); err != nil {
-		t.Fatal(err)
-	}
-	server, conn := net.Pipe()
-	done := make(chan struct{})
-	go func() { defer close(done); _ = reversesshfs.ServeConfined(server, root, false, mounts.BaseNames) }()
-	client, err := sftp.NewClientPipe(conn, conn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = client.Close(); _ = conn.Close(); <-done }()
-	file, err := client.Create(filepath.Join(root, "note.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err = file.Write([]byte("shared")); err != nil {
-		t.Fatal(err)
-	}
-	_ = file.Close()
-	data, err := os.ReadFile(filepath.Join(root, "note.txt"))
-	if err != nil || string(data) != "shared" {
-		t.Fatal("project write did not reach the host")
-	}
-	for _, p := range []string{outside, filepath.Join(root, "escape", "secret")} {
-		f, err := client.Open(p)
-		if err == nil {
-			_ = f.Close()
-			t.Fatalf("read escaped selected project: %s", p)
-		}
-	}
-	if f, err := client.Create(filepath.Join(root, ".git", "config")); err == nil {
-		_ = f.Close()
-		t.Fatal("Git metadata was writable")
-	}
-	f, err := client.Open(filepath.Join(root, "note.txt"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-	got, err := io.ReadAll(f)
-	if err != nil || string(got) != "shared" {
-		t.Fatal("shared file read failed")
 	}
 }
 
@@ -155,7 +97,7 @@ func TestProjectActionsUseExplicitDirectoryWithoutSwitchingProject(t *testing.T)
 	if err := s.rememberSharedProject(a); err != nil {
 		t.Fatal(err)
 	}
-	s.projectShares = map[string]*projectShare{a: {done: make(chan struct{})}}
+	useProjectGuest(t, s)
 	marker := filepath.Join(s.profile, "state", "lima", vmname.Name(s.environmentDir()), "cage-running.json")
 	if err := writePrivate(marker, map[string]int{"pid": os.Getpid()}); err != nil {
 		t.Fatal(err)
@@ -167,25 +109,25 @@ func TestProjectActionsUseExplicitDirectoryWithoutSwitchingProject(t *testing.T)
 	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &terminal) != nil || terminal.Workspace != a {
 		t.Fatalf("terminal did not use the explicit directory: %s", w.Body.String())
 	}
-	session := s.terminals[terminal.ID]
-	defer session.close()
-	if script := session.cmd.Args[len(session.cmd.Args)-1]; !strings.HasPrefix(script, "cd "+shellescape.Quote(a)+" &&") {
-		t.Fatalf("terminal command opened a different directory: %s", script)
+	session := s.terminals.Get(terminal.ID)
+	t.Cleanup(func() { s.terminals.Close(terminal.ID) })
+	if session == nil || session.Info().Workspace != a {
+		t.Fatal("terminal manager received a different directory")
 	}
-	var editorWorkspace string
-	s.guestClient = &http.Client{Transport: browserTransport(func(r *http.Request) (*http.Response, error) {
+	var editorWorkspace atomic.Value
+	useBrowserService(t, s, func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
 			Workspace string `json:"workspace"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
-		editorWorkspace = input.Workspace
-		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"id":"editor"}`)), Header: http.Header{}}, nil
-	})}
+		editorWorkspace.Store(input.Workspace)
+		_, _ = w.Write([]byte(`{"id":"editor"}`))
+	})
 	for _, action := range []string{"editor", "editor-restart"} {
 		w = request(s, "POST", "/api/browser/"+action, s.origin, string(body), true)
-		if w.Code != 200 || editorWorkspace != a || s.workspace() != b {
+		if w.Code != 200 || editorWorkspace.Load() != a || s.workspace() != b {
 			t.Fatalf("%s changed the selected project or ignored its directory: %s", action, w.Body.String())
 		}
 	}
@@ -198,7 +140,21 @@ func TestProjectActionsUseExplicitDirectoryWithoutSwitchingProject(t *testing.T)
 			}
 		}
 	}
-	if len(s.terminals) != 1 || s.workspace() != b {
+	if len(s.terminals.List()) != 1 || s.workspace() != b {
 		t.Fatal("rejected requests changed existing sessions")
 	}
+}
+
+// These integration tests exercise project selection, not the guest mount.
+// The manager still owns and closes real transport child processes.
+type projectGuestStub struct{}
+
+func (projectGuestStub) Run(context.Context, string) ([]byte, error) { return nil, nil }
+func (projectGuestStub) Command(ctx context.Context, _ string) *exec.Cmd {
+	return exec.CommandContext(ctx, "cat")
+}
+func useProjectGuest(t *testing.T, s *Server) {
+	t.Helper()
+	s.projects = projects.New(s.profile, s.environmentDir(), projectGuestStub{})
+	t.Cleanup(s.projects.Close)
 }

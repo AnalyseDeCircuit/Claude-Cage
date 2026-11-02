@@ -14,16 +14,19 @@ import (
 )
 
 func TestHandoffRequiresLauncherSecretAndIdleEnvironment(t *testing.T) {
-	for _, busy := range []string{"none", "job", "terminal", "vm", "operation"} {
+	for _, busy := range []string{"none", "job", "terminal", "closed-terminal", "vm", "operation"} {
 		t.Run(busy, func(t *testing.T) {
 			s := testServer(t)
 			var stopped atomic.Bool
 			s.shutdown = func() { stopped.Store(true) }
 			switch busy {
 			case "job":
-				s.job = Job{ID: "active", Running: true}
+				holdTestJob(t, s, "active")
 			case "terminal":
-				s.terminals["live"] = &terminalSession{}
+				startTestTerminal(t, s)
+			case "closed-terminal":
+				startTestTerminal(t, s)
+				s.terminals.CloseAll()
 			case "vm":
 				path := filepath.Join(s.profile, "state", "lima", "base-building", "cage-running.json")
 				if err := writePrivate(path, map[string]int{"pid": os.Getpid()}); err != nil {
@@ -40,7 +43,7 @@ func TestHandoffRequiresLauncherSecretAndIdleEnvironment(t *testing.T) {
 				t.Fatalf("cross-origin handoff: %d", w.Code)
 			}
 			w := request(s, "POST", "/api/handoff", s.origin, `{"token":"`+s.token+`"}`, false)
-			if busy != "none" {
+			if busy != "none" && busy != "closed-terminal" {
 				if w.Code != 409 || stopped.Load() {
 					t.Fatalf("terminated busy controller: %d", w.Code)
 				}

@@ -2,8 +2,8 @@ package workbench
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -11,31 +11,47 @@ import (
 	"github.com/sylvinus/agent-vm/internal/cage"
 )
 
-func TestGuestConnectionRequiresSuccessfulMatchingManifest(t *testing.T) {
-	required := cage.RequiredGuestManifest()
-	for _, name := range []string{"current", "missing", "old-revision", "old-protocol", "broken"} {
-		t.Run(name, func(t *testing.T) {
-			manifest := required
-			if name == "old-revision" {
-				manifest.Revision = "previous"
-			}
-			if name == "old-protocol" {
-				manifest.Protocol++
-			}
-			encoded, _ := json.Marshal(manifest)
-			if name == "missing" {
-				encoded = []byte("null")
-			}
-			if name == "broken" {
-				encoded = []byte("{")
-			}
-			credentials, current, err := parseGuestConnection(append([]byte("{\"token\":\"guest-test\"}\npassword\n"), encoded...))
-			if name == "current" {
-				if err != nil || current == nil || credentials.Token != "guest-test" || credentials.VNCPassword != "password" {
-					t.Fatal(current, err)
+func TestComponentUpdateFailureClosesNetworkAndKeepsSessions(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		paused bool
+	}{{"online", false}, {"paused", true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, gate := grantedToolUpdateServer(t)
+			holdTestJob(t, s, "environment-update")
+			if tc.paused {
+				if err := s.pauseNetworkNow("manual"); err != nil {
+					t.Fatal(err)
 				}
-			} else if !errors.Is(err, errGuestUpdateRequired) {
-				t.Fatalf("stale guest accepted: %v", err)
+			}
+			// The command fails before reconnection, without starting a VM.
+			// Pin the synthetic VM identity before resolving the new directory's symlinks.
+			directory := s.environmentDir()
+			if err := writePrivate(filepath.Join(s.profile, "environment.json"), map[string]string{"directory": directory}); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.MkdirAll(directory, 0700); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = os.RemoveAll(directory) })
+			s.exe = filepath.Join(t.TempDir(), "cage-test")
+			if err := os.WriteFile(s.exe, []byte("#!/bin/sh\nprintf '%s\\n' \"$*\"\nexit 1\n"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			terminal := startTestTerminal(t, s)
+			err := s.synchronizeEnvironment()
+			job := s.jobQueue().Snapshot()
+			if err == nil || !strings.Contains(err.Error(), "up 未完成") || job.Log != "up\n" {
+				t.Fatalf("update failure was not reported: %v, %q", err, job.Log)
+			}
+			if s.ready || !s.guestUpdateRequired || s.guestUpdateError == "" {
+				t.Fatal("failed component update was published as ready")
+			}
+			if gate.Status().Mode != cage.GateClosed || s.networkPaused != tc.paused {
+				t.Fatal("component update changed manual pause or left network open")
+			}
+			if s.terminals.Get(terminal.Info().ID) != terminal || terminal.Info().Closed {
+				t.Fatal("component update interrupted an existing terminal")
 			}
 		})
 	}
@@ -55,7 +71,7 @@ func grantedToolUpdateServer(t *testing.T) (*Server, *cage.EgressGate) {
 	s.ready = true
 	required := cage.RequiredGuestManifest()
 	s.guestManifest = &required
-	s.job = Job{ID: "tools", Kind: "environment-tools", Running: true}
+	holdTestJob(t, s, "environment-tools")
 	s.publishGate(gate.Status())
 	return s, gate
 }
@@ -75,7 +91,7 @@ func TestToolUpdateLeaseHonorsPauseStopAndConfigurationAtRenewal(t *testing.T) {
 					t.Fatal(err)
 				}
 			case "stop":
-				s.job = Job{ID: "stop", Kind: "stop", Running: true}
+				holdTestJob(t, s, "stop")
 			case "configuration-changed":
 				cfg, err := loadConfig(s.configPath)
 				if err != nil {

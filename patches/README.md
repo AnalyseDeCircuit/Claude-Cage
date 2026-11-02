@@ -3,8 +3,8 @@
 agent-vm builds Lima, sshocker, pkg/sftp and gvisor-tap-vsock from `third_party/`: each one is its upstream commit
 (`third_party/SOURCES`) with the patches of this folder applied, in name order. Every patch is a
 change meant for upstream, kept small enough to be sent as a PR on its own. Never edit
-`third_party/` by hand: change a patch, then `scripts/third-party-sync <name>`. CI runs
-`scripts/third-party-sync all --check`.
+`third_party/` by hand: change a patch, then `scripts/tools/third-party-sync <name>`. CI runs
+`scripts/tools/third-party-sync all --check`.
 
 ## Why
 
@@ -78,9 +78,9 @@ fix, see the test fail, restore.
 ## Working on a patch
 
 ```bash
-scripts/third-party-sync sshocker                 # third_party/sshocker from SOURCES and patches
-scripts/third-party-sync sshocker --ref <commit>  # move to another upstream commit
-scripts/third-party-sync all --check              # what CI runs
+scripts/tools/third-party-sync sshocker                 # third_party/sshocker from SOURCES and patches
+scripts/tools/third-party-sync sshocker --ref <commit>  # move to another upstream commit
+scripts/tools/third-party-sync all --check              # what CI runs
 ```
 
 To change a patch: clone upstream at the commit of `SOURCES`, `git am` (or `git apply`) the

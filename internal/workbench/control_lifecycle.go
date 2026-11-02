@@ -57,12 +57,7 @@ func (s *Server) handoff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.mu.Lock()
-	busy := s.job.Running || controllerHasVM(s.profile)
-	for _, terminal := range s.terminals {
-		terminal.mu.Lock()
-		busy = busy || !terminal.closed
-		terminal.mu.Unlock()
-	}
+	busy := s.jobQueueLocked().Snapshot().Running || controllerHasVM(s.profile) || s.terminals.HasActive()
 	if busy || s.shutdown == nil {
 		s.mu.Unlock()
 		s.op.Unlock()

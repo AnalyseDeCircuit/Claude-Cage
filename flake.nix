@@ -1,4 +1,4 @@
-# Upstream agent-vm reference only. Cage is built by scripts/build-app.sh;
+# Upstream agent-vm reference only. Cage is built with make app;
 # this retained Nix target is not updated or supported for Cage releases.
 {
   description = "agent-vm: AI coding agents in a disposable Linux VM per project";

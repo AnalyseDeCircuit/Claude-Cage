@@ -4,6 +4,6 @@ mkdirSync(".generated", { recursive: true });
 cpSync("vendor/novnc", ".generated/novnc", { recursive: true, force: true });
 execFileSync(
   "uv",
-  ["run", "python", "../internal/cage/novnc-patch.py", ".generated/novnc"],
+  ["run", "python", "../internal/cage/guest/novnc-patch.py", ".generated/novnc"],
   { stdio: "inherit" },
 );

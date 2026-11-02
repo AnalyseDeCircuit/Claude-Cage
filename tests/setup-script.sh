@@ -2,14 +2,14 @@
 #
 # Checks of agent-vm.setup.sh, the script `agent-vm setup` runs in the base
 # VM: its blocks lifted out and run against stubs, nothing installed. Run by
-# TestSetupScript (setup_script_test.go), or alone:
+# TestSetupScript (tests/scripts_test.go), or alone:
 #
 #   tests/setup-script.sh
 
 set -uo pipefail
 
 SELF_DIR="$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]:-$0}")/.." >/dev/null && pwd)"
-SETUP_SH="${SETUP_SH:-$SELF_DIR/agent-vm.setup.sh}"
+SETUP_SH="${SETUP_SH:-$SELF_DIR/internal/cli/guest/agent-vm.setup.sh}"
 
 FAIL=0
 PASSED=0

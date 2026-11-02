@@ -5,7 +5,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { api, native, nativeAvailable } from "./api";
+import { api } from "./api";
+import { native, nativeAvailable } from "./desktop";
 import {
   defaultAppearance,
   normalizeAppearance,

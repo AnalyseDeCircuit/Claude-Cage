@@ -2,7 +2,7 @@
 #
 # Checks of release.sh, in dry runs against a throwaway repository whose
 # origin is a bare one, with a stub gh and a stub make (nothing is built,
-# tagged on GitHub or published). Run by TestRelease (setup_script_test.go),
+# tagged on GitHub or published). Run by TestRelease (tests/scripts_test.go),
 # or alone:
 #
 #   tests/release.sh
@@ -10,6 +10,7 @@
 set -uo pipefail
 
 SELF_DIR="$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]:-$0}")/.." >/dev/null && pwd)"
+RELEASE="$SELF_DIR/scripts/tools/upstream/release.sh"
 
 FAIL=0
 PASSED=0
@@ -37,16 +38,16 @@ echo "release.sh"
 
 # notes, on a changelog of our own: the section stops at the next heading
 # and loses its surrounding blank lines.
-mkdir -p "$SB/notes"
-cp "$SELF_DIR/release.sh" "$SB/notes/"
-printf '# Changelog\n\n## 2.0.0\n\n- two\n\n## 1.0.0\n\n- one\n' > "$SB/notes/CHANGELOG.md"
-check "notes: only that version's section" "$("$SB/notes/release.sh" notes 2.0.0)" "- two"
-check "notes: the last section too" "$("$SB/notes/release.sh" notes 1.0.0)" "- one"
-"$SB/notes/release.sh" notes 3.0.0 >/dev/null 2>&1
+mkdir -p "$SB/notes/scripts/tools/upstream" "$SB/notes/docs/upstream"
+cp "$RELEASE" "$SB/notes/scripts/tools/upstream/"
+printf '# Changelog\n\n## 2.0.0\n\n- two\n\n## 1.0.0\n\n- one\n' > "$SB/notes/docs/upstream/CHANGELOG.md"
+check "notes: only that version's section" "$("$SB/notes/scripts/tools/upstream/release.sh" notes 2.0.0)" "- two"
+check "notes: the last section too" "$("$SB/notes/scripts/tools/upstream/release.sh" notes 1.0.0)" "- one"
+"$SB/notes/scripts/tools/upstream/release.sh" notes 3.0.0 >/dev/null 2>&1
 check "notes: an absent version fails" "$?" "1"
 # Wrapped for the terminal, joined for GitHub: items and paragraphs become one
 # line each, headings, fences, tables and sub-items stay as written.
-printf '# Changelog\n\n## 4.0.0\n\nIntro line one\ncontinued here.\n\n### Added\n\n- first item\n  continued\n  and again\n- second item\n  - sub item\n    wrapped\n\n```\nkept\n  as is\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n## 3.0.0\n\n- old\n' > "$SB/notes/CHANGELOG.md"
+printf '# Changelog\n\n## 4.0.0\n\nIntro line one\ncontinued here.\n\n### Added\n\n- first item\n  continued\n  and again\n- second item\n  - sub item\n    wrapped\n\n```\nkept\n  as is\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n## 3.0.0\n\n- old\n' > "$SB/notes/docs/upstream/CHANGELOG.md"
 want='Intro line one continued here.
 
 ### Added
@@ -63,22 +64,22 @@ kept
 | a | b |
 |---|---|
 | 1 | 2 |'
-check "notes: wrapped lines are joined, the rest is kept" "$("$SB/notes/release.sh" notes 4.0.0)" "$want"
-"$SELF_DIR/release.sh" 1.2 >/dev/null 2>&1
+check "notes: wrapped lines are joined, the rest is kept" "$("$SB/notes/scripts/tools/upstream/release.sh" notes 4.0.0)" "$want"
+"$RELEASE" 1.2 >/dev/null 2>&1
 check "a malformed version is refused before anything else" "$?" "1"
-"$SELF_DIR/release.sh" >/dev/null 2>&1
+"$RELEASE" >/dev/null 2>&1
 check "no argument prints the usage (exit 2)" "$?" "2"
 
 # The repository: what release.sh reads, NEXT_VERSION and a changelog
 # section set to $V, committed and pushed.
 RR="$SB/repo"; RO="$SB/origin.git"; RB="$SB/bin"
-mkdir -p "$RR/www/public" "$RB"
-cp -R "$SELF_DIR/release.sh" "$SELF_DIR/agent-vm.sh" "$SELF_DIR/agent-vm.setup.sh" "$SELF_DIR/runtime.example.sh" \
-  "$SELF_DIR/LICENSE" "$SELF_DIR/NOTICE" "$SELF_DIR/THIRD_PARTY_LICENSES" "$SELF_DIR/README.md" \
+mkdir -p "$RR/www/public" "$RR/internal/cli/guest" "$RR/docs/upstream" "$RB"
+cp "$SELF_DIR/internal/cli/guest/agent-vm.setup.sh" "$RR/internal/cli/guest/"
+cp -R "$SELF_DIR/LICENSE" "$SELF_DIR/NOTICE" "$SELF_DIR/THIRD_PARTY_LICENSES" "$SELF_DIR/README.md" \
   "$SELF_DIR/tests" "$SELF_DIR/scripts" "$SELF_DIR/packaging" "$RR/"
 cp "$SELF_DIR/www/public/install.sh" "$RR/www/public/"
 printf 'NEXT_VERSION := %s\n' "$V" > "$RR/Makefile"
-printf '# Changelog\n\n## %s\n\n- notes\n' "$V" > "$RR/CHANGELOG.md"
+printf '# Changelog\n\n## %s\n\n- notes\n' "$V" > "$RR/docs/upstream/CHANGELOG.md"
 # gh: a release's assets are copied to $SB/assets. $SB/draft and
 # $SB/released say what "release list" finds. REL_CI is the state the CI
 # filter would give (the filter itself is tested below, with jq);
@@ -170,7 +171,7 @@ export AGENT_VM_NFPM="$RB/nfpm"
 ( cd "$RR" && git init -q -b main && git add -A && git commit -qm r \
     && git init -q --bare "$RO" && git remote add origin "$RO" && git push -q origin main ) >/dev/null 2>&1
 
-relrun() { ( cd "$RR" && PATH="$RB:$PATH" bash ./release.sh "$V" --dry-run "$@" ) 2>&1; }
+relrun() { ( cd "$RR" && PATH="$RB:$PATH" bash ./scripts/tools/upstream/release.sh "$V" --dry-run "$@" ) 2>&1; }
 
 : > "$SB/make.log"
 out="$(relrun)"; rc=$?
@@ -188,7 +189,7 @@ check "dry run: each platform built, the Makefile choosing cgo" \
   "$(sed -n 's/.* agent-vm GOOS=\([a-z]*\) GOARCH=\([a-z0-9]*\) VERSION='$V'$/\1-\2/p' "$SB/make.log" | tr '\n' ' ')" "$want "
 check "dry run: nothing tagged or published" "$(git -C "$RR" tag)$(ls "$SB/assets" 2>/dev/null)" ""
 if [ "$(uname -s)" != Darwin ]; then
-  out="$( cd "$RR" && PATH="$RB:$PATH" bash ./release.sh "$V" --yes 2>&1 )"; rc=$?
+  out="$( cd "$RR" && PATH="$RB:$PATH" bash ./scripts/tools/upstream/release.sh "$V" --yes 2>&1 )"; rc=$?
   case "$rc:$out" in 1:*"built on macOS"*) pass "not on macOS: a real release is refused" ;; *) fail "not on macOS: $out" ;; esac
 fi
 
@@ -239,7 +240,7 @@ esac
 # The jq filter that reads gh's run list (gh runs it itself; jq here): no run,
 # one going, one failed (whatever else passed), one passed, only cancelled.
 if command -v jq >/dev/null 2>&1; then
-  ci_jq="$(awk "/^CI_JQ='/ { p = 1; sub(/^CI_JQ='/, \"\") } p { if (\$0 ~ /^'\$/) exit; print }" "$SELF_DIR/release.sh")"
+  ci_jq="$(awk "/^CI_JQ='/ { p = 1; sub(/^CI_JQ='/, \"\") } p { if (\$0 ~ /^'\$/) exit; print }" "$RELEASE")"
   ci_state() { printf '%s' "$1" | jq -r "$ci_jq"; }
   check "ci filter: no run" "$(ci_state '[]')" "none"
   check "ci filter: one running" "$(ci_state '[{"status":"in_progress","conclusion":""},{"status":"completed","conclusion":"success"}]')" "running"
@@ -305,7 +306,7 @@ check "--not-latest: the formula unchanged" "$(grep -c 'v1.0.0' "$SB/tap/Formula
 
 sign_env=()
 [ -z "$SIGN" ] || sign_env=(AGENT_VM_WINDOWS_PFX="$SB/cert.pfx" AGENT_VM_WINDOWS_PFX_PASS=secret AGENT_VM_WINDOWS_TIMESTAMP=)
-out="$( cd "$RR" && env ${sign_env[@]+"${sign_env[@]}"} AGENT_VM_TAP="$SB/tap" AGENT_VM_RELEASE_TEST_NO_MACOS=1 PATH="$RB:$PATH" bash ./release.sh "$V" --yes 2>&1 )"; rc=$?
+out="$( cd "$RR" && env ${sign_env[@]+"${sign_env[@]}"} AGENT_VM_TAP="$SB/tap" AGENT_VM_RELEASE_TEST_NO_MACOS=1 PATH="$RB:$PATH" bash ./scripts/tools/upstream/release.sh "$V" --yes 2>&1 )"; rc=$?
 case "$rc:$out" in 0:*"agent-vm $V is released"*) pass "real run: released" ;; *) fail "real run: $out" ;; esac
 check "real run: the tag is on origin" "$(git -C "$RO" tag)" "v$V"
 check "real run: the latest release (no --latest=false)" "$(grep -c -- '--latest=false' "$SB/gh-edit.log")" "0"

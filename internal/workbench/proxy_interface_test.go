@@ -82,7 +82,8 @@ func TestInterfaceRecoveryRevokesGateAndPreservesManualPause(t *testing.T) {
 			s.op.Lock()
 			s.monitorProxyInterface()
 			s.mu.Lock()
-			queued, paused := s.job.Kind == "proxy-network" && s.job.Running, s.networkPaused
+			job := s.jobQueueLocked().Snapshot()
+			queued, paused := job.Kind == "proxy-network" && job.Running, s.networkPaused
 			s.mu.Unlock()
 			closed := gate.Status().Mode == cage.GateClosed
 			finished := make(chan struct{})
@@ -108,7 +109,7 @@ func TestMissingPhysicalInterfaceClosesGateWithoutUnboundFallback(t *testing.T) 
 	t.Cleanup(func() { physicalProxyInterface = previous })
 	physicalProxyInterface = func(context.Context) (string, error) { return "", errors.New("physical network unavailable") }
 	s.monitorProxyInterface()
-	if gate.Status().Mode != cage.GateClosed || s.networkPaused || !s.proxyNetworkLost || s.job.Running || s.networkError == "" {
+	if gate.Status().Mode != cage.GateClosed || s.networkPaused || !s.proxyNetworkLost || s.jobQueue().Snapshot().Running || s.networkError == "" {
 		t.Fatal("missing uplink did not preserve offline recovery state")
 	}
 	data, _ := os.ReadFile(filepath.Join(s.profile, "proxy", "config.yaml"))

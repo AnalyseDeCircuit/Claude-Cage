@@ -1,13 +1,11 @@
-# agent-vm 0.3, the Go binary, with Lima built in from third_party/.
+# Cage control binary and workbench, with Lima built in from third_party/.
 #
-#   make              _output/bin/agent-vm, with the guest agent and templates
-#   make install      build it, then link it onto the PATH (AGENT_VM_BIN_DIR
-#                     to choose where; ~/.local/bin by default)
-#   make limactl      Lima's own limactl from third_party/, for debugging
-#   make test         the Go tests
-#   make check-windows      the Windows build and tests compile and vet, from any OS
-#   make test-third-party   the tests of the modules in third_party/, patched
-#   make check-third-party  third_party/ is upstream plus patches/, nothing else
+#   make / make cage   _output/bin/cage, including the workbench and guest assets
+#   make help          Cage build, verification and retained upstream commands
+#
+# Use make app for the macOS bundle; make/cage retains the binary-only contract.
+
+.DEFAULT_GOAL := cage
 
 GO ?= go
 GOOS ?= $(shell $(GO) env GOOS)
@@ -17,16 +15,10 @@ GOARCH ?= $(shell $(GO) env GOARCH)
 VERSION ?= $(shell tr -d '\r\n' < VERSION)
 LIMA_VERSION := $(shell awk '$$1 == "lima" { print $$4 }' third_party/SOURCES)
 
-ifeq ($(GOARCH),amd64)
-GUEST_ARCH := x86_64
-else ifeq ($(GOARCH),arm64)
-GUEST_ARCH := aarch64
-else
-GUEST_ARCH := $(GOARCH)
-endif
-ifeq ($(GOOS),windows)
-EXE := .exe
-endif
+# Resolve Go platform settings only for targets that use them. Help, release
+# verification and frontend commands do not require a Go installation.
+GUEST_ARCH = $(if $(filter amd64,$(GOARCH)),x86_64,$(if $(filter arm64,$(GOARCH)),aarch64,$(GOARCH)))
+EXE = $(if $(filter windows,$(GOOS)),.exe)
 
 ASSETS := internal/limaembed/assets
 LDFLAGS := -s -w \
@@ -38,23 +30,91 @@ TAGS := yq_noxml,yq_nolua,yq_noini,yq_nohcl,yq_notoml,yq_noprops,yq_nocsv,yq_nou
 # cgo on macOS only, where vz and Lima's file watcher need it. On Linux the
 # hostagent's DNS server uses Go's resolver (Lima builds it with the
 # system's), and the binary cross-compiles with no C compiler.
-ifeq ($(GOOS),darwin)
-CGO_ENABLED ?= 1
-else
-CGO_ENABLED ?= 0
-endif
-GO_BUILD := CGO_ENABLED=$(CGO_ENABLED) $(GO) build -trimpath -tags $(TAGS) -ldflags "$(LDFLAGS)"
+CGO_ENABLED ?= $(if $(filter darwin,$(GOOS)),1,0)
+GO_BUILD = CGO_ENABLED=$(CGO_ENABLED) $(GO) build -trimpath -tags $(TAGS) -ldflags "$(LDFLAGS)"
 
-.PHONY: all agent-vm install limactl assets test test-go check-windows test-third-party check-third-party fuzz clean
+.PHONY: all cage cage-ui help agent-vm install limactl assets test test-go check-windows test-third-party check-third-party fuzz clean
+.PHONY: app install-app package-app package-notarized-app verify-release proxy-core licenses check-licenses check-version dev-ui test-ui test-guest test-tools test-app-updates test-headless
 
-all: agent-vm
+HEADLESS_CAGE ?= _output/bin/cage
+
+all: cage
+
+help:
+	@printf '%s\n' \
+	  'Cage:' \
+	  '  make [cage]         Build _output/bin/cage and its workbench assets' \
+	  '  make app            Build _output/Cage.app; check Go licenses first' \
+	  '  make install-app    Build and install to ~/Applications (replaces old App)' \
+	  '  make package-app    Build, sign and notarize release files; does not publish' \
+	  '  make package-notarized-app  Resume packaging an already notarized App' \
+	  '  make proxy-core     Download and verify the bundled proxy core' \
+	  '  make dev-ui         Start the workbench frontend development server' \
+	  '' \
+	  'Verification:' \
+	  '  make test           Run Go tests; see CONTRIBUTING.md for UI and App checks' \
+	  '  make test-ui        Lint and test the workbench (npm ci --prefix ui first)' \
+	  '  make test-guest     Test guest JavaScript and Python helpers' \
+	  '  make test-tools     Test application cleanup tooling' \
+	  '  make test-app-updates  Test native and Go application update logic' \
+	  '  make test-headless HEADLESS_UPSTREAM=socks5://127.0.0.1:<port>  Real isolated VM acceptance; see CONTRIBUTING.md' \
+	  '  make check-version  Check VERSION against frontend package versions' \
+	  '  make check-licenses Check generated Go licenses without changing them' \
+	  '  make verify-release RELEASE_DIR=<directory>  Verify a downloaded macOS release' \
+	  '  make check-third-party  Check vendored sources against upstream + patches' \
+	  '  make test-third-party   Test patched dependencies' \
+	  '  make fuzz           Run configured fuzzers (FUZZTIME=1m by default)' \
+	  '  make clean          Remove build outputs and generated Lima assets' \
+	  '' \
+	  'License maintenance:' \
+	  '  make licenses       Regenerate THIRD_PARTY_LICENSES; review and commit changes' \
+	  '  NOTICE is maintained manually; App licenses are collected during the build.' \
+	  '' \
+	  'Retained upstream tools (not Cage desktop platform support):' \
+	  '  make agent-vm       Build the agent-vm command' \
+	  '  make install        Install the agent-vm command, not Cage.app' \
+	  '  make limactl        Build Lima debugging tools' \
+	  '  make check-windows  Run Windows-targeted Go vet checks' \
+	  '' \
+	  'Repository layout: docs/repository.md'
+
+# Keep the scripts usable directly; platform checks, signing, replacement and
+# cleanup stay in their existing owners rather than being repeated here.
+app:
+	bash scripts/tools/build-app.sh
+
+install-app:
+	bash scripts/tools/build-app.sh --install
+
+package-app:
+	bash scripts/tools/package-macos.sh
+
+package-notarized-app:
+	bash scripts/tools/package-macos.sh --from-notarized-app
+
+verify-release:
+	@test -n "$(RELEASE_DIR)" || { echo 'Usage: make verify-release RELEASE_DIR=<directory>' >&2; exit 2; }
+	bash scripts/tests/verify-macos-release.sh "$(RELEASE_DIR)"
+
+proxy-core:
+	bash scripts/tools/fetch-proxy-core.sh
+
+licenses:
+	bash scripts/tools/licenses
+
+check-licenses:
+	bash scripts/tools/licenses --check
+
+check-version:
+	node scripts/tests/check-version.mjs
+
+dev-ui:
+	npm run --prefix ui dev
 
 # Claude Cage ships a separate entry point with a mandatory proxy profile.
 cage: cage-ui assets
 	$(GO_BUILD) -o _output/bin/cage ./cmd/cage
-ifeq ($(GOOS),darwin)
-	codesign -f --entitlements third_party/lima/vz.entitlements -s - _output/bin/cage
-endif
+	$(if $(filter darwin,$(GOOS)),codesign -f --entitlements third_party/lima/vz.entitlements -s - _output/bin/cage)
 
 cage-ui:
 	npm --prefix ui ci --no-audit --no-fund
@@ -62,9 +122,7 @@ cage-ui:
 
 agent-vm: assets
 	$(GO_BUILD) -o _output/bin/agent-vm$(EXE) ./cmd/agent-vm
-ifeq ($(GOOS),darwin)
-	codesign -f -v --entitlements third_party/lima/vz.entitlements -s - _output/bin/agent-vm
-endif
+	$(if $(filter darwin,$(GOOS)),codesign -f -v --entitlements third_party/lima/vz.entitlements -s - _output/bin/agent-vm)
 
 # For developers: the binary install puts on the PATH, with its own
 # wording, replacement of earlier installs and next steps.
@@ -77,9 +135,7 @@ limactl:
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) $(GO) build -trimpath -ldflags "-s -w" \
 		-o _output/share/lima/lima-guestagent.Linux-$(GUEST_ARCH) github.com/lima-vm/lima/v2/cmd/lima-guestagent
 	rm -rf _output/share/lima/templates && cp -R third_party/lima/templates _output/share/lima/templates
-ifeq ($(GOOS),darwin)
-	codesign -f -v --entitlements third_party/lima/vz.entitlements -s - _output/bin/limactl
-endif
+	$(if $(filter darwin,$(GOOS)),codesign -f -v --entitlements third_party/lima/vz.entitlements -s - _output/bin/limactl)
 
 # The guest agent runs in the Linux guest: built for it, without cgo.
 assets:
@@ -92,14 +148,34 @@ assets:
 test: test-go
 
 test-go:
-	$(GO) test -tags $(TAGS) . ./cmd/... ./internal/...
+	$(GO) test -tags $(TAGS) . ./cmd/... ./internal/... ./tests
 
-# The Windows build and its tests compile and vet, from any OS. The Windows
-# paths' logic is tested everywhere (paths.Windows); the tests themselves
-# run on Windows in CI (windows-latest).
+test-ui:
+	npm run --prefix ui lint
+	npm test --prefix ui
+
+test-guest:
+	node --test internal/cage/guest/clipboard.test.cjs internal/cage/guest/browser-audit.test.mjs internal/cage/guest/browser-downloads.test.mjs
+	uv run internal/cage/guest/save-download.test.py
+	uv run internal/cage/guest/editor-migrate.test.py
+
+test-tools:
+	node --test scripts/tests/cleanup-apps.test.mjs
+
+test-app-updates:
+	bash scripts/tests/test-app-updates.sh
+
+# Requires a candidate binary with its bundled core and an authorized local
+# proxy. The acceptance runner owns its own profile, HOME, project and VM.
+test-headless:
+	@test -n "$(HEADLESS_UPSTREAM)" || { echo 'Set HEADLESS_UPSTREAM to an authorized local SOCKS5 endpoint; see CONTRIBUTING.md'; exit 2; }
+	$(GO) run ./scripts/tests/headless -cage "$(HEADLESS_CAGE)" -upstream "$(HEADLESS_UPSTREAM)" $(if $(HEADLESS_REPORT),-report "$(HEADLESS_REPORT)") $(if $(HEADLESS_IMAGE_CACHE),-image-cache "$(HEADLESS_IMAGE_CACHE)")
+
+# Retained Windows-targeted vet checks. These do not establish that the Cage
+# desktop application supports Windows; its current CI runs on macOS.
 check-windows:
-	GOOS=windows GOARCH=amd64 $(GO) vet -tags $(TAGS) . ./cmd/... ./internal/...
-	GOOS=windows GOARCH=arm64 $(GO) vet -tags $(TAGS) . ./cmd/... ./internal/...
+	GOOS=windows GOARCH=amd64 $(GO) vet -tags $(TAGS) . ./cmd/... ./internal/... ./tests
+	GOOS=windows GOARCH=arm64 $(GO) vet -tags $(TAGS) . ./cmd/... ./internal/... ./tests
 
 # From this module, so that each library is built with the others patched.
 # Lima's MCP packages and sshocker's command are not part of agent-vm (-e:
@@ -112,7 +188,7 @@ test-third-party:
 	$(GO) test github.com/containers/gvisor-tap-vsock/pkg/...
 
 check-third-party:
-	scripts/third-party-sync all --check
+	scripts/tools/third-party-sync all --check
 
 # Each fuzzer for FUZZTIME (their seeds run with the tests). The vendored
 # sshocker's through tests/fuzz/go.work, which makes it fuzzable.

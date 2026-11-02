@@ -127,3 +127,29 @@ test("a new control address reconnects without sending a ticket to the old origi
   await assert.rejects(api("/stop", {}), /地址已更新/);
   assert.deepEqual(actions, ["refreshSession", "reconnect"]);
 });
+
+test("a disposed caller does not replay its request after shared session renewal", async (t) => {
+  let release,
+    attempts = 0;
+  const entry = new Promise((resolve) => {
+    release = resolve;
+  });
+  nativeRuntime(
+    t,
+    async (path) => {
+      if (path === "/api/session") return json({});
+      attempts++;
+      return new Response("expired", { status: 401 });
+    },
+    () => entry,
+  );
+  const lifetime = new AbortController();
+  const request = api("/status", undefined, undefined, {
+    signal: lifetime.signal,
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  lifetime.abort();
+  release({ url: "http://localhost:17777/#test-ticket" });
+  await assert.rejects(request, { name: "AbortError" });
+  assert.equal(attempts, 1);
+});

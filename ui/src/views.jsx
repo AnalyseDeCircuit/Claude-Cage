@@ -9,9 +9,9 @@ import { useAppearance } from "./appearance";
 import { terminalTheme, systemCodeFont } from "./appearance-state.mjs";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import RFB from "../.generated/novnc/core/rfb.js";
-import { api, readClipboard, writeClipboard } from "./api";
-import { installRemoteInput } from "./remote-input";
+import { readClipboard, writeClipboard } from "./desktop";
+import { connectDisplay } from "./display-connection";
+import { connectTerminal } from "./terminal-connection";
 import { useWindowVisibility } from "./window-visibility";
 import { RefreshCw, Clipboard, ArrowUpRight } from "lucide-react";
 import "@xterm/xterm/css/xterm.css";
@@ -23,120 +23,39 @@ export const RemoteView = forwardRef(function RemoteView(
   const windowVisible = useWindowVisibility();
   const screenVisible = visible && windowVisible;
   const box = useRef(),
-    rfb = useRef(),
-    input = useRef(),
+    display = useRef(),
     current = useRef({ visible, keyboard, onStatus, onFallback });
   current.current = { visible: screenVisible, keyboard, tabId, onStatus, onFallback };
-  const failures = useRef(0);
-  const [connection, setConnection] = useState("connecting"),
-    [attempt, setAttempt] = useState(0);
+  const retryState = useRef({ failures: 0 });
+  const [connection, setConnection] = useState("connecting");
   useImperativeHandle(ref, () => ({
-    focus: () => rfb.current?.focus(),
+    focus: () => display.current?.client?.focus(),
     edit: (action) =>
       box.current?.contains(document.activeElement)
-        ? input.current?.edit(action)
+        ? display.current?.input?.edit(action)
         : false,
-    copy: () => input.current?.copy(),
-    paste: () => input.current?.readAndPaste(),
-    pasteText: (text) => input.current?.paste(text),
+    copy: () => display.current?.input?.copy(),
+    paste: () => display.current?.input?.readAndPaste(),
+    pasteText: (text) => display.current?.input?.paste(text),
     transfer: () =>
-      onFallback(input.current?.text() || "", "可在此使用本机复制、粘贴。"),
+      onFallback(display.current?.input?.text() || "", "可在此使用本机复制、粘贴。"),
   }));
   useEffect(() => {
     if (!screenVisible) return;
-    let disposed = false,
-      client,
-      resizeObserver,
-      resizeTimer,
-      reconnectTimer;
-    setConnection("connecting");
-    const retry = () => {
-      if (disposed) return;
-      setConnection("disconnected");
-      clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(
-        () => setAttempt((v) => v + 1),
-        Math.min(1000 * 2 ** failures.current++, 5000),
-      );
-    };
-    api("/vnc-credentials")
-      .then(({ password }) => {
-        if (disposed) return;
-        client = new RFB(
-          box.current,
-          `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/vnc`,
-          { credentials: { password } },
-        );
-        rfb.current = client;
-        client.scaleViewport = true;
-        client.resizeSession = false;
-        client.background = "#ffffff";
-        client.qualityLevel = 8;
-        client.compressionLevel = 2;
-        client.addEventListener("connect", () => {
-          if (disposed) return;
-          failures.current = 0;
-          setConnection("connected");
-          const resize = () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-              if (disposed) return;
-              const { width, height } = box.current.getBoundingClientRect();
-              if (width >= 320 && height >= 240)
-                api("/browser/resize", {
-                  width: Math.min(8192, Math.floor(width * 2)),
-                  height: Math.min(8192, Math.floor(height * 2)),
-                }).catch(() =>
-                  current.current.onStatus("画面尺寸未能调整，请重新连接画面"),
-                );
-            }, 160);
-          };
-          resizeObserver = new ResizeObserver(resize);
-          resizeObserver.observe(box.current);
-          resize();
-          input.current = installRemoteInput(client, box.current, {
-            insertText: (text) => {
-              const id = current.current.tabId;
-              return client.cageRunInput(() => {
-                if (disposed || !current.current.visible || current.current.tabId !== id)
-                  throw new Error("Input target changed");
-                return api("/browser/insert-text", { id, text });
-              });
-            },
-            mode: () => current.current.keyboard,
-            isActive: () => current.current.visible,
-            onStatus: (t) => current.current.onStatus(t),
-            onFallback: (...args) => current.current.onFallback(...args),
-          });
-          if (current.current.visible) client.focus();
-        });
-        client.addEventListener("disconnect", () => {
-          if (disposed) return;
-          input.current?.dispose();
-          input.current = null;
-          retry();
-        });
-        client.addEventListener("securityfailure", () => {
-          retry();
-        });
-      })
-      .catch(() => {
-        retry();
-      });
+    const next = connectDisplay(box.current, {
+      current: () => current.current,
+      retryState: retryState.current,
+      onState: setConnection,
+    });
+    display.current = next;
     return () => {
-      disposed = true;
-      clearTimeout(resizeTimer);
-      clearTimeout(reconnectTimer);
-      resizeObserver?.disconnect();
-      input.current?.dispose();
-      input.current = null;
-      client?.disconnect();
-      rfb.current = null;
+      next.close();
+      display.current = null;
     };
-  }, [attempt, screenVisible]);
+  }, [screenVisible]);
   useEffect(() => {
     if (screenVisible && connection === "connected") {
-      const t = setTimeout(() => rfb.current?.focus(), 80);
+      const t = setTimeout(() => display.current?.client?.focus(), 80);
       return () => clearTimeout(t);
     }
   }, [screenVisible, connection]);
@@ -153,7 +72,7 @@ export const RemoteView = forwardRef(function RemoteView(
           {connection === "disconnected" && (
             <button
               className="primary"
-              onClick={() => setAttempt((v) => v + 1)}
+              onClick={() => display.current?.reconnect()}
             >
               重新连接画面
             </button>
@@ -189,36 +108,25 @@ export function TerminalView({ session, visible, onStatus, onControls }) {
     terminal.open(box.current);
     instance.current = terminal;
     fit.current = fitter;
-    const ws = new WebSocket(
-      `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/terminals/${session.id}/stream`,
-    );
-    ws.binaryType = "arraybuffer";
-    socket.current = ws;
+    setConnected(false);
     const resize = () => {
       if (!visibleRef.current) return;
       try {
         fitter.fit();
-        if (ws.readyState === WebSocket.OPEN)
-          ws.send(
-            JSON.stringify({
-              type: "resize",
-              cols: terminal.cols,
-              rows: terminal.rows,
-            }),
-          );
+        socket.current?.resize(terminal.cols, terminal.rows);
       } catch {}
     };
-    ws.onopen = () => {
-      setConnected(true);
-      resize();
-      if (visibleRef.current) terminal.focus();
-    };
-    ws.onmessage = (event) => terminal.write(new Uint8Array(event.data));
-    ws.onclose = () => setConnected(false);
-    terminal.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN)
-        ws.send(JSON.stringify({ type: "input", data }));
+    const channel = connectTerminal(session.id, {
+      onOpen() {
+        setConnected(true);
+        resize();
+        if (visibleRef.current) terminal.focus();
+      },
+      onData: (data) => terminal.write(data),
+      onClose: () => setConnected(false),
     });
+    socket.current = channel;
+    const input = terminal.onData((data) => channel.write(data));
     onControls?.({
       edit(action) {
         if (!box.current?.contains(document.activeElement)) return false;
@@ -282,7 +190,9 @@ export function TerminalView({ session, visible, onStatus, onControls }) {
     return () => {
       onControls?.(null);
       observer.disconnect();
-      ws.close();
+      input.dispose();
+      channel.close();
+      socket.current = null;
       terminal.dispose();
       instance.current = null;
     };
@@ -291,10 +201,8 @@ export function TerminalView({ session, visible, onStatus, onControls }) {
     if (visible) {
       fit.current?.fit();
       instance.current?.focus();
-      const ws = socket.current,
-        t = instance.current;
-      if (ws?.readyState === WebSocket.OPEN && t)
-        ws.send(JSON.stringify({ type: "resize", cols: t.cols, rows: t.rows }));
+      const t = instance.current;
+      if (t) socket.current?.resize(t.cols, t.rows);
     }
   }, [visible]);
   useEffect(() => {

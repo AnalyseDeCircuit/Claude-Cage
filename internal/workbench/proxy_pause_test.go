@@ -76,7 +76,7 @@ func assertProxyStayedPaused(t *testing.T, s *Server, gate *cage.EgressGate) {
 	s.op.Lock()
 	defer s.op.Unlock()
 	s.mu.Lock()
-	paused, job := s.networkPaused, s.job
+	paused, job := s.networkPaused, s.jobQueueLocked().Snapshot()
 	s.mu.Unlock()
 	if job.Running || job.Error != "" {
 		t.Fatalf("proxy update did not complete: %+v", job)
@@ -158,8 +158,9 @@ func TestManualProxySelectionMayResumeExistingPause(t *testing.T) {
 	defer s.op.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.job.Running || s.job.Error != "" || s.networkPaused {
-		t.Fatalf("explicit selection failed to resume the existing pause: %+v", s.job)
+	job := s.jobQueueLocked().Snapshot()
+	if job.Running || job.Error != "" || s.networkPaused {
+		t.Fatalf("explicit selection failed to resume the existing pause: %+v", job)
 	}
 	reloaded := reloadedIntentServer(t, s)
 	if err := reloaded.restoreNetworkIntent(); err != nil || reloaded.networkPaused {

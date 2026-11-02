@@ -5,14 +5,14 @@
 # Shell scripts must keep LF endings everywhere: a CRLF checkout on
 # Windows breaks bash.
 *.sh text eol=lf
-/scripts/* text eol=lf
+/scripts/** text eol=lf
 /tests/sftp/run text eol=lf
 
 # Go files too: a CRLF checkout on Windows breaks the tests that compare
 # them byte for byte (limaembed's copy of limactl's hostagent command).
 *.go text eol=lf
 
-# Checked byte for byte by scripts/licenses --check.
+# Checked byte for byte by scripts/tools/licenses --check.
 /THIRD_PARTY_LICENSES text eol=lf
 
 # Images are binary, and the recorded outputs and fuzz corpora of the tests

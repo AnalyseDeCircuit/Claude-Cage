@@ -1,7 +1,6 @@
 package workbench
 
 import (
-	"context"
 	"path/filepath"
 
 	"github.com/sylvinus/agent-vm/internal/managedproxy"
@@ -11,7 +10,7 @@ var physicalProxyInterface = managedproxy.PhysicalInterface
 
 // The lifecycle lock is held by monitorNetwork. Schedule a regular job so a
 // user stop can cancel recovery and pause can still revoke the gate immediately.
-func (s *Server) monitorProxyInterface() {
+func (s *Service) monitorProxyInterface() {
 	if s.busy() {
 		return
 	}
@@ -19,7 +18,7 @@ func (s *Server) monitorProxyInterface() {
 	if err != nil || cfg.RequireManagedProxy(s.profile) != nil {
 		return
 	}
-	name, err := physicalProxyInterface(context.Background())
+	name, err := physicalProxyInterface(s.lifetimeContext())
 	if err != nil {
 		_ = s.closeProxyGate(err.Error())
 		s.mu.Lock()
@@ -42,10 +41,10 @@ func (s *Server) monitorProxyInterface() {
 	s.mu.Lock()
 	s.proxyNetworkLost = false
 	s.mu.Unlock()
-	s.launch(&discardResponse{}, "proxy-network", s.rebindProxyInterface)
+	_, _ = s.submit("proxy-network", s.rebindProxyInterface)
 }
 
-func (s *Server) rebindProxyInterface() error {
+func (s *Service) rebindProxyInterface() error {
 	s.setMessage("正在识别物理网卡并重新绑定代理…")
 	cfg, err := loadConfig(s.configPath)
 	if err != nil {

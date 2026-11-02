@@ -14,7 +14,7 @@ import (
 
 func reloadedIntentServer(t *testing.T, previous *Server) *Server {
 	t.Helper()
-	reloaded := &Server{profile: previous.profile, configPath: previous.configPath, origin: previous.origin, token: previous.token, session: previous.session, preferences: previous.preferences, terminals: map[string]*terminalSession{}}
+	reloaded := &Server{Service: &Service{profile: previous.profile, configPath: previous.configPath, origin: previous.origin, preferences: previous.preferences}, token: previous.token, session: previous.session}
 	return reloaded
 }
 
@@ -106,7 +106,7 @@ func TestPauseAndResumeStorageFailuresKeepGateClosed(t *testing.T) {
 	for _, operation := range []string{"pause", "resume"} {
 		t.Run(operation, func(t *testing.T) {
 			s, gate := grantedToolUpdateServer(t)
-			s.job = Job{}
+			cancelTestJob(t, s)
 			if err := os.Mkdir(filepath.Join(s.profile, "network-intent.json"), 0700); err != nil {
 				t.Fatal(err)
 			}

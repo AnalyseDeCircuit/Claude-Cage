@@ -53,7 +53,8 @@ code = "Menlo"
 }
 
 func TestAppearanceSaveDoesNotChangeEnvironmentAndRejectsBadInput(t *testing.T) {
-	s := &Server{profile: t.TempDir(), preferences: Preferences{Workspace: "/project"}, job: Job{Running: true, Kind: "start"}}
+	s := &Server{Service: &Service{profile: t.TempDir(), preferences: Preferences{Workspace: "/project"}}}
+	holdTestJob(t, s, "start")
 	a := defaultAppearance()
 	a.Mode = "dark"
 	a.UIFontSize = 16
@@ -65,7 +66,8 @@ func TestAppearanceSaveDoesNotChangeEnvironmentAndRejectsBadInput(t *testing.T) 
 	if w.Code != 200 {
 		t.Fatal(w.Body.String())
 	}
-	if !s.job.Running || s.job.Kind != "start" || s.preferences.Workspace != "/project" {
+	job := s.jobQueue().Snapshot()
+	if !job.Running || job.Kind != "start" || s.preferences.Workspace != "/project" {
 		t.Fatal("appearance changed environment state")
 	}
 	w = httptest.NewRecorder()

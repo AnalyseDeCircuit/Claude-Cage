@@ -1,44 +1,18 @@
 package cage
 
 import (
-	"al.essio.dev/pkg/shellescape"
 	"crypto/sha256"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
 
+	"al.essio.dev/pkg/shellescape"
 	"github.com/sylvinus/agent-vm/internal/version"
 )
 
-//go:embed guest-setup.sh
-var guestDependencies string
-
-//go:embed guest-services.sh
-var guestServices string
-
-//go:embed novnc-patch.py
-var novncPatch string
-
-//go:embed clipboard.js
-var clipboardJS string
-
-//go:embed browser-agent.mjs
-var browserAgent string
-
-//go:embed browser-audit.mjs
-var browserAudit string
-
-//go:embed browser-downloads.mjs
-var browserDownloads string
-
-//go:embed editor-migrate.py
-var editorMigrate string
-
-//go:embed save-download.py
-var saveDownload string
-
+// Script builders below own guest installation and startup order. The embedded
+// files are declared in guest_resources.go; guest/ owns their runtime code.
 func browserServices() string {
 	return guestServices + "\nsudo tee /usr/local/lib/browser-downloads.mjs >/dev/null <<'CAGE_BROWSER_DOWNLOADS'\n" + browserDownloads + "\nCAGE_BROWSER_DOWNLOADS\n" + "\nsudo tee /usr/local/bin/cage-editor-migrate >/dev/null <<'CAGE_EDITOR_MIGRATE'\n" + editorMigrate + "\nCAGE_EDITOR_MIGRATE\nsudo chmod 0755 /usr/local/bin/cage-editor-migrate\n" + "\nsudo tee /usr/local/lib/browser-audit.mjs >/dev/null <<'CAGE_BROWSER_AUDIT'\n" + browserAudit + "\nCAGE_BROWSER_AUDIT\n" + "\nsudo tee /usr/local/lib/cage-browser-agent.mjs >/dev/null <<'CAGE_BROWSER_AGENT'\n" + browserAgent + "\nCAGE_BROWSER_AGENT\n" + "sudo tee /usr/local/bin/cage-save-download >/dev/null <<'CAGE_DOWNLOAD_HELPER'\n" + saveDownload + "\nCAGE_DOWNLOAD_HELPER\nsudo chmod 0755 /usr/local/bin/cage-save-download\nprintf 'cage-browser ALL=(root) NOPASSWD: /usr/local/bin/cage-save-download *\\n' | sudo tee /etc/sudoers.d/cage-download >/dev/null\nsudo chmod 0440 /etc/sudoers.d/cage-download\n" + "\nsudo python3 - <<'CAGE_NOVNC_PATCH'\n" + novncPatch + "\nCAGE_NOVNC_PATCH\n" + "\nsudo tee /usr/share/novnc/cage-clipboard.js >/dev/null <<'CAGE_CLIPBOARD_JS'\n" + clipboardJS + "\nCAGE_CLIPBOARD_JS\n" + `sudo python3 - <<'PYCODE'
 from pathlib import Path
@@ -57,21 +31,6 @@ PYCODE
 }
 
 var GuestSetup = guestDependencies + "\n" + browserServices()
-
-//go:embed editor-theme.json
-var editorTheme string
-
-//go:embed guest-start.sh
-var guestStart string
-
-//go:embed guest-env.sh
-var guestEnv string
-
-//go:embed tool-versions.env
-var toolVersions string
-
-//go:embed guest-tools.sh
-var guestTools string
 
 func ToolInstallPrelude() string { return toolVersions + "\n" + guestTools + "\n" }
 

@@ -1,5 +1,9 @@
 # agent-vm
 
+This is the retained upstream introduction. For Cage development, use the
+[contribution guide](../CONTRIBUTING.md) and [repository layout](repository.md).
+The default `make` target now builds Cage; use `make agent-vm` for the upstream command.
+
 Run AI coding agents in a disposable Linux VM per project, with permissions bypassed. The VM gets your project directory and nothing else of yours: no SSH keys, no browser sessions, no rest of your disk.
 
 One binary with [Lima](https://lima-vm.io/) built in. Ships dev tools, Docker, headless Chromium with [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp), and [Claude Code](https://claude.ai/code), [OpenCode](https://github.com/anomalyco/opencode), [Codex CLI](https://github.com/openai/codex), [Mistral Vibe](https://docs.mistral.ai/vibe/code/cli/install-setup) and, opt-in, [Pi](https://pi.dev). macOS and Linux; Windows is experimental.
@@ -12,7 +16,7 @@ One binary with [Lima](https://lima-vm.io/) built in. Ships dev tools, Docker, h
 curl -fsSL https://www.agent-vm.org/install.sh | sh
 ```
 
-Or `brew install sylvinus/tap/agent-vm`; on Linux, the `.deb` or `.rpm` of the [latest release](https://github.com/sylvinus/agent-vm/releases/latest), or `nix run github:sylvinus/agent-vm` (QEMU included). From a clone, with Go (and on macOS the Xcode command line tools): `./agent-vm.sh install` builds it and links it onto your `PATH`; after a `git pull`, run it again. See [Install](https://www.agent-vm.org/#install) for prerequisites.
+Or `brew install sylvinus/tap/agent-vm`; on Linux, the `.deb` or `.rpm` of the [latest release](https://github.com/sylvinus/agent-vm/releases/latest), or `nix run github:sylvinus/agent-vm` (QEMU included). From this clone, with Go (and on macOS the Xcode command line tools): `scripts/tools/upstream/agent-vm.sh install` builds it and links it onto your `PATH`; after a `git pull`, run it again. See [Install](https://www.agent-vm.org/#install) for prerequisites.
 
 ## Use
 
@@ -43,14 +47,16 @@ The agent is root in its VM and has the network. What it can reach on your machi
 ## Development
 
 ```bash
-make                                       # _output/bin/agent-vm
+make agent-vm                              # _output/bin/agent-vm
 make test-go                               # no VM; 0.2's recorded behavior where it is compared
 go test -tags e2e ./internal/vm/ ./internal/cli/   # real VMs
 make check-third-party test-third-party    # Lima, sshocker, pkg/sftp, gvisor-tap-vsock: upstream + patches/
 make fuzz FUZZTIME=5m                      # each fuzzer; their seeds run with the tests
 ```
 
-Releases: [RELEASING.md](RELEASING.md). The website is in [`www/`](www/README.md). Changes: [CHANGELOG.md](CHANGELOG.md).
+Retained release procedure: [RELEASING.md](upstream/RELEASING.md).
+Upstream website: [www.agent-vm.org](https://www.agent-vm.org/).
+Upstream changes: [CHANGELOG.md](upstream/CHANGELOG.md). This repository's `www/` now contains the Cage website.
 
 ## License
 

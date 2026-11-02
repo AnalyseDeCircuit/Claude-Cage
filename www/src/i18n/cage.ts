@@ -1,7 +1,7 @@
 import { languages, type CageLocale } from './languages';
 export { languages, type CageLocale } from './languages';
 export const locales = languages.map(language => language.code);
-const readmes = import.meta.glob<string>('../../../README*.md', { query: '?raw', import: 'default', eager: true });
+const readmes = import.meta.glob<string>(['../../../README.md', '../../../docs/readme/README.*.md'], { query: '?raw', import: 'default', eager: true });
 
 function plain(text: string) {
   return text.replace(/<img\b[^>]*>/g, '').replace(/!\[[^\]]*\]\([^)]*\)/g, '')
@@ -21,7 +21,7 @@ function pair(text: string): [string, string] {
   return bold ? [plain(bold[1]), plain(bold[2])] : ['', plain(text)];
 }
 function readCopy(language: typeof languages[number]) {
-  const file = language.code === 'zh' ? 'README.md' : `README.${language.code}.md`;
+  const file = language.code === 'zh' ? 'README.md' : `docs/readme/README.${language.code}.md`;
   const source = readmes[`../../../${file}`];
   if (!source) throw new Error(`Missing website language source: ${file}`);
   const headings = [...source.matchAll(/^## (.+)$/gm)];
@@ -39,13 +39,15 @@ function readCopy(language: typeof languages[number]) {
   }
   const setup = stepHeadings.map((heading, i): [string,string] => [heading[1], plain(steps.body.slice(heading.index! + heading[0].length, stepHeadings[i+1]?.index ?? steps.body.length))]);
   const docs = [...contribution.body.matchAll(/^\|\s*([^|]+)\s*\|\s*\[([^\]]+)\]\(([^)]+)\)\s*\|/gm)].map(match => ({
-    title: plain(match[1]), label: match[2], href: match[3].startsWith('https://') ? match[3] : `https://github.com/Lee-xeo/Claude-Cage/blob/main/${match[3]}`,
+    title: plain(match[1]), label: match[2], href: new URL(match[3], `https://github.com/Lee-xeo/Claude-Cage/blob/main/${file}`).href,
   }));
-  const slogan = source.slice(0, headings[0].index).match(/^\*\*(.+?)\*\*$/m)?.[1] || 'Claude Cage';
+  const header = source.slice(0, headings[0].index);
+  const slogan = header.match(/^<p align="center"><strong>(.+?)<\/strong><\/p>$/m)?.[1]
+    || header.match(/^\*\*(.+?)\*\*$/m)?.[1] || 'Claude Cage';
   const isChinese = language.code === 'zh' || language.code === 'zh-TW';
   const limit = plain(bullets(boundaries.body).at(-1)!);
   return {
-    ...language, title: `Claude Cage — ${plain(slogan)}`, description: reasonParagraphs[1],
+    ...language, readmePath: file, title: `Claude Cage — ${plain(slogan)}`, description: reasonParagraphs[1],
     home: 'Claude Cage', start: quick.title, boundary: boundaries.title,
     hero: isChinese ? '把 Claude 大小姐' : 'Claude Cage',
     heroAccent: language.code === 'zh' ? '关起来。' : language.code === 'zh-TW' ? '關起來。' : '',

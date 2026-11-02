@@ -2,9 +2,9 @@ name: Website and public releases
 on:
   push:
     branches: [main]
-    paths: ['www/**', 'assets/**', 'README*.md', 'scripts/verify-macos-release.sh', '.github/workflows/www.yml']
+    paths: ['www/**', 'assets/**', 'README.md', 'docs/readme/**', 'Makefile', 'scripts/tests/verify-macos-release.sh', '.github/workflows/www.yml']
   pull_request:
-    paths: ['www/**', 'assets/**', 'README*.md', 'scripts/verify-macos-release.sh', '.github/workflows/www.yml']
+    paths: ['www/**', 'assets/**', 'README.md', 'docs/readme/**', 'Makefile', 'scripts/tests/verify-macos-release.sh', '.github/workflows/www.yml']
   release:
     types: [published, edited]
   workflow_dispatch:
@@ -37,7 +37,7 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: node www/scripts/sync-release.mjs --tag "$RELEASE_TAG" --output "$RUNNER_TEMP/release.json" --archive-directory "$RUNNER_TEMP/release"
       - name: Verify the shipped macOS application
-        run: bash scripts/verify-macos-release.sh "$RUNNER_TEMP/release"
+        run: make verify-release RELEASE_DIR="$RUNNER_TEMP/release"
   build:
     needs: verify-release
     if: always() && !cancelled() && (needs.verify-release.result == 'success' || needs.verify-release.result == 'skipped')

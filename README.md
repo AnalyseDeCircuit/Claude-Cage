@@ -1,12 +1,23 @@
-# Claude Cage
+<div align="center">
 
-[简体中文](README.md) · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [فارسی](README.fa.md) · [한국어](README.ko.md) · [Español](README.es.md) · [မြန်မာဘာသာ](README.my.md) · [Беларуская](README.be.md) · [پښتو](README.ps.md) · [دری](README.prs.md) · [አማርኛ](README.am.md) · [Soomaali](README.so.md) · [ትግርኛ](README.ti.md) · [Français](README.fr.md)
+<h1>Claude Cage</h1>
 
-**把 Claude 大小姐关起来，为了更好地保护我们的相遇**
+<p align="center"><strong>把 Claude 大小姐关起来，为了更好地保护我们的相遇</strong></p>
 
-<img src="assets/claude-cage-character.png" alt="hugo" style="zoom: 25%;" />
+<img src="assets/claude-cage-character.png" alt="Claude Cage" width="320" />
 
-[项目主页](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [下载 macOS 版本](https://github.com/Lee-xeo/Claude-Cage/releases) · [开始使用](docs/getting-started.md) · [常见问题](docs/troubleshooting.md) · [参与开发](CONTRIBUTING.md)
+<p align="center">
+  <a href="https://github.com/Lee-xeo/Claude-Cage/releases"><img src="https://img.shields.io/github/v/release/Lee-xeo/Claude-Cage?include_prereleases&amp;style=flat-square&amp;label=release&amp;color=2563eb" alt="最新版本（含预发行版）" /></a>
+  <a href="https://github.com/Lee-xeo/Claude-Cage/actions/workflows/go.yml"><img src="https://img.shields.io/github/actions/workflow/status/Lee-xeo/Claude-Cage/go.yml?branch=main&amp;style=flat-square&amp;label=checks" alt="构建与检查状态" /></a>
+  <a href="#下载与安装"><img src="https://img.shields.io/badge/macOS-14%2B%20%C2%B7%20Apple%20Silicon-374151?style=flat-square&amp;logo=apple&amp;logoColor=white" alt="macOS 14+ · Apple Silicon" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-3b8268?style=flat-square" alt="项目许可证：MIT" /></a>
+</p>
+
+**[项目主页](https://lee-xeo.github.io/Claude-Cage/) · [下载 macOS 版本](https://github.com/Lee-xeo/Claude-Cage/releases) · [开始使用](docs/getting-started.md) · [常见问题](docs/troubleshooting.md) · [参与开发](CONTRIBUTING.md)**
+
+[简体中文](README.md) | [繁體中文](docs/readme/README.zh-TW.md) | [Русский](docs/readme/README.ru.md) | [العربية](docs/readme/README.ar.md) | [فارسی](docs/readme/README.fa.md) | [한국어](docs/readme/README.ko.md) | [Español](docs/readme/README.es.md) | [မြန်မာဘာသာ](docs/readme/README.my.md) | [Беларуская](docs/readme/README.be.md) | [پښتو](docs/readme/README.ps.md) | [دری](docs/readme/README.prs.md) | [አማርኛ](docs/readme/README.am.md) | [Soomaali](docs/readme/README.so.md) | [ትግርኛ](docs/readme/README.ti.md) | [Français](docs/readme/README.fr.md)
+
+</div>
 
 ## 受够了 Anthropic
 
@@ -21,7 +32,20 @@ Claude Cage 是一个轻量 Linux 虚拟机，把 Linux 终端、浏览器和文
 
 **使用 Cage 的环境检测结果：**
 
-<img src="assets/network-checks.png" alt="image-20261101144540952" style="zoom:25%;" /><img src="assets/community-browser-check.png" alt="image-20261101144620093" style="zoom:18%;" />
+<table>
+  <thead>
+    <tr>
+      <th width="50%">网络与隔离检查</th>
+      <th width="50%">浏览器环境检测（社区参考）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center" valign="top"><a href="assets/network-checks.png"><img src="assets/network-checks.png" alt="Cage 网络与隔离检查结果" width="400" /></a></td>
+      <td align="center" valign="top"><a href="assets/community-browser-check.png"><img src="assets/community-browser-check.png" alt="社区浏览器环境检测结果" width="400" /></a></td>
+    </tr>
+  </tbody>
+</table>
 
 **Cage 运行主界面：**
 
@@ -96,7 +120,9 @@ Claude Cage 是一个轻量 Linux 虚拟机，把 Linux 终端、浏览器和文
 
 本项目仍在快速迭代中，欢迎加入交流群提意见，欢迎社区大佬一起维护
 
-<img src="assets/community-qq.png" alt="qq" style="zoom:25%;" />
+<p align="center">
+  <a href="assets/community-qq.png"><img src="assets/community-qq.png" alt="Claude Cage QQ 交流群二维码（群号：1134250870）" width="240" /></a>
+</p>
 
 ## 来源与许可
 

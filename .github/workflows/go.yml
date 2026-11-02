@@ -26,28 +26,22 @@ jobs:
           cache-dependency-path: ui/package-lock.json
       - uses: astral-sh/setup-uv@v10.3.3
       - name: Application version consistency
-        run: node scripts/check-version.mjs
+        run: make check-version
       - name: Build the actual macOS application
-        run: bash scripts/build-app.sh
+        run: make app
       - name: Workbench checks
         run: |
-          npm run --prefix ui lint
-          npm test --prefix ui
-          node --test internal/cage/clipboard.test.cjs internal/cage/browser-audit.test.mjs internal/cage/browser-downloads.test.mjs
-          uv run internal/cage/save-download.test.py
-          uv run internal/cage/editor-migrate.test.py
+          make test-ui test-guest test-tools
       - name: Go tests and vet
         run: |
           make test-go
-          go test -race ./internal/cage ./internal/managedproxy ./internal/workbench
-          go vet ./cmd/cage ./internal/cage ./internal/managedproxy ./internal/workbench
+          go test -race ./internal/browser ./internal/cage ./internal/environment ./internal/jobs ./internal/managedproxy ./internal/projects ./internal/settings ./internal/terminal ./internal/workbench
+          go vet ./cmd/cage ./internal/browser ./internal/cage ./internal/environment ./internal/jobs ./internal/managedproxy ./internal/projects ./internal/privatefile ./internal/settings ./internal/terminal ./internal/workbench
       - name: Native application updater
-        run: bash scripts/test-app-updates.sh
+        run: make test-app-updates
       - name: Patched networking and shared files
         run: |
           go test github.com/containers/gvisor-tap-vsock/pkg/services/dns github.com/lima-vm/lima/v2/pkg/hostagent/dns github.com/lima-vm/lima/v2/pkg/networks/usernet github.com/lima-vm/sshocker/pkg/reversesshfs
-      - name: Dependency licenses
-        run: bash scripts/licenses --check
       - name: Verify bundle
         run: |
           codesign --verify --deep --strict _output/Cage.app

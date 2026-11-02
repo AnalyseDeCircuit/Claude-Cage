@@ -3,7 +3,7 @@ module github.com/sylvinus/agent-vm
 go 1.26.10
 
 // Lima, sshocker and pkg/sftp are built from third_party/: upstream plus
-// patches/ (see scripts/third-party-sync). These replaces only apply when
+// patches/ (see scripts/tools/third-party-sync). These replaces only apply when
 // this module is the main one, so `go install ...@latest` does not build
 // agent-vm: releases ship binaries.
 replace (

@@ -1,5 +1,5 @@
 import { getKeycode, getKeysym } from "../.generated/novnc/core/input/util.js";
-import { readClipboard, writeClipboard, nativeAvailable } from "./api";
+import { readClipboard, writeClipboard, nativeAvailable } from "./desktop";
 
 // A user gesture starts every host clipboard access. Fences and serialization
 // in the shared RFB patch ensure that repeated pastes are processed in order.

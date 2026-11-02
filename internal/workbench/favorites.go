@@ -26,7 +26,7 @@ type Favorites struct {
 	Folders []FavoriteFolder `json:"folders"`
 }
 
-func (s *Server) readFavorites() (Favorites, error) {
+func (s *Service) readFavorites() (Favorites, error) {
 	f := Favorites{Items: []Favorite{}, Folders: []FavoriteFolder{}}
 	b, err := os.ReadFile(filepath.Join(s.profile, "favorites.json"))
 	if os.IsNotExist(err) {

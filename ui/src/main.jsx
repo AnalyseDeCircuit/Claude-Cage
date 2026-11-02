@@ -20,7 +20,8 @@ import {
   TerminalSquare,
   X,
 } from "lucide-react";
-import { api, normalizeURL, native, nativeAvailable } from "./api";
+import { api, normalizeURL } from "./api";
+import { native, nativeAvailable } from "./desktop";
 import { RemoteView, TerminalView, Modal } from "./views";
 import { SettingsPanel } from "./settings";
 import { AppearanceProvider } from "./appearance";
@@ -46,19 +47,14 @@ import { AppUpdateButton, useAppUpdates } from "./app-updates";
 import "./style.css";
 import "./appearance.css";
 import { stopAndExit } from "./quit";
+import { useWorkbench } from "./use-workbench";
 
 function App() {
   const appUpdates = useAppUpdates();
   const [recoveringEditor, setRecoveringEditor] = useState(false);
   const windowVisible = useWindowVisibility();
-  const windowVisibleRef = useRef(windowVisible);
-  windowVisibleRef.current = windowVisible;
-  const [status, setStatus] = useState(null),
-    [settings, setSettings] = useState(null),
-    [proxy, setProxy] = useState(null),
-    [tabs, setTabs] = useState([]),
+  const [tabs, setTabs] = useState([]),
     [active, setActive] = useState(localStorage.getItem("cage-active") || ""),
-    [browser, setBrowser] = useState({ tabs: [] }),
     [address, setAddress] = useState(""),
     [settingsOpen, setSettingsOpen] = useState(false),
     [hostGitOpen, setHostGitOpen] = useState(false),
@@ -72,8 +68,6 @@ function App() {
     [projectDialog, setProjectDialog] = useState(null),
     [rename, setRename] = useState(null),
     [toast, setToast] = useState(""),
-    [fatal, setFatal] = useState(""),
-    [connectionError, setConnectionError] = useState(""),
     [dialog, setDialog] = useState(null),
     [transfer, setTransfer] = useState(null),
     [details, setDetails] = useState(false),
@@ -84,17 +78,71 @@ function App() {
     addressField = useRef(),
     activeRef = useRef(active),
     lastBrowserTab = useRef(""),
-    readyRef = useRef(false),
     browserIds = useRef(new Set()),
     initialized = useRef(false),
-    browserStreamReady = useRef(false),
-    browserSnapshot = useRef({ tabs: [] }),
-    refreshStatus = useRef(null),
     launchAcknowledged = useRef(false),
-    lastJob = useRef(""),
     quitAfterStop = useRef(null);
   activeRef.current = active;
-  readyRef.current = Boolean(status?.ready);
+  const {
+    status,
+    setStatus,
+    settings,
+    proxy,
+    browser,
+    connectionError,
+    fatal,
+    refreshSettings,
+  } = useWorkbench({
+    visible: windowVisible,
+    onNotice: (message) => setToast(message),
+    onSnapshot({ browser: b, terminals }) {
+      const all = [
+        ...b.tabs,
+        ...terminals.map((item) => ({
+          ...item,
+          id: "terminal:" + item.id,
+          sessionId: item.id,
+          kind: "terminal",
+        })),
+      ];
+      setTabs((previous) => {
+        const map = new Map(all.map((item) => [item.id, item]));
+        return [
+          ...previous
+            .filter((item) => map.has(item.id))
+            .map((item) => map.get(item.id)),
+          ...all.filter((item) => !previous.some((p) => p.id === item.id)),
+        ];
+      });
+      if (
+        !activeRef.current ||
+        !all.some((item) => item.id === activeRef.current) ||
+        (initialized.current && b.active && !browserIds.current.has(b.active))
+      )
+        setActive(b.active || all[0]?.id || "");
+      browserIds.current = new Set(b.tabs.map((item) => item.id));
+      initialized.current = true;
+    },
+    onBrowser(b) {
+      setTabs((previous) => {
+        const map = new Map(b.tabs.map((item) => [item.id, item]));
+        return [
+          ...previous
+            .filter((item) => item.kind === "terminal" || map.has(item.id))
+            .map((item) => map.get(item.id) || item),
+          ...b.tabs.filter((item) => !previous.some((p) => p.id === item.id)),
+        ];
+      });
+      if (
+        b.active &&
+        (b.focus ||
+          !activeRef.current ||
+          !activeRef.current.startsWith("terminal:"))
+      )
+        setActive(b.active);
+      browserIds.current = new Set(b.tabs.map((item) => item.id));
+    },
+  });
   const current = tabs.find((t) => t.id === active),
     terminal = current?.kind === "terminal",
     busy = Boolean(status?.job?.running),
@@ -128,13 +176,6 @@ function App() {
           : "已停止";
   const notify = (text) => setToast(text);
   useDownloadNotifications(browser.downloads, notify);
-  const refreshSettings = async () => {
-    const results = await Promise.allSettled([api("/settings"), api("/proxy")]);
-    if (results[0].status === "fulfilled") setSettings(results[0].value);
-    else notify(results[0].reason.message);
-    if (results[1].status === "fulfilled") setProxy(results[1].value);
-    else setProxy(null);
-  };
   const confirm = (options) =>
     new Promise((resolve) => setDialog({ ...options, resolve }));
   const openSettings = (section = "keyboard") => {
@@ -331,114 +372,6 @@ function App() {
     }
   };
   useEffect(() => {
-    let live = true,
-      timer,
-      polling = false;
-    const poll = async () => {
-      if (!live || polling) return;
-      clearTimeout(timer);
-      polling = true;
-      let jobRunning = false;
-      try {
-        const next = await api("/status");
-        if (!live) return;
-        jobRunning = next.job.running;
-        setStatus(next);
-        setConnectionError("");
-        if (
-          !next.job.running &&
-          next.job.id &&
-          lastJob.current !== next.job.id
-        ) {
-          lastJob.current = next.job.id;
-          await refreshSettings();
-          if (next.job.error) notify(next.job.error);
-        }
-        if (next.ready) {
-          const fetchBrowser = !browserStreamReady.current || !initialized.current;
-          const [browserResult, t] = await Promise.all([
-            fetchBrowser ? api("/browser/tabs") : null,
-            api("/terminals"),
-          ]);
-          if (!live) return;
-          const b = browserResult || browserSnapshot.current;
-          browserSnapshot.current = b;
-          setBrowser(b);
-          const all = [
-            ...b.tabs,
-            ...t.map((item) => ({
-              ...item,
-              id: "terminal:" + item.id,
-              sessionId: item.id,
-              kind: "terminal",
-            })),
-          ];
-          setTabs((previous) => {
-            const map = new Map(all.map((item) => [item.id, item]));
-            return [
-              ...previous
-                .filter((item) => map.has(item.id))
-                .map((item) => map.get(item.id)),
-              ...all.filter((item) => !previous.some((p) => p.id === item.id)),
-            ];
-          });
-          if (
-            !activeRef.current ||
-            !all.some((item) => item.id === activeRef.current) ||
-            (initialized.current &&
-              b.active &&
-              !browserIds.current.has(b.active))
-          ) {
-            setActive(b.active || all[0]?.id || "");
-          }
-          browserIds.current = new Set(b.tabs.map((item) => item.id));
-          initialized.current = true;
-        }
-      } catch (e) {
-        if (live) setConnectionError(e.message);
-      } finally {
-        polling = false;
-        if (live)
-          timer = setTimeout(
-            poll,
-            jobRunning ? 1200 : windowVisibleRef.current ? 3000 : 15000,
-          );
-      }
-    };
-    (async () => {
-      try {
-        const token = location.hash.slice(1);
-        if (token) {
-          await api("/session", { token });
-          history.replaceState(null, "", location.pathname);
-        }
-        const config = await api("/settings");
-        window.dispatchEvent(new Event("cage-session-ready"));
-        if (!live) return;
-        setSettings(config);
-        try {
-          const proxyState = await api("/proxy");
-          if (!live) return;
-          setProxy(proxyState);
-        } catch {
-          // Network settings remain available when the core cannot be read.
-        }
-        refreshStatus.current = poll;
-        await poll();
-      } catch (e) {
-        if (live) setFatal(e.message);
-      }
-    })();
-    return () => {
-      live = false;
-      refreshStatus.current = null;
-      clearTimeout(timer);
-    };
-  }, []);
-  useEffect(() => {
-    if (windowVisible) refreshStatus.current?.();
-  }, [windowVisible]);
-  useEffect(() => {
     if (!settings || !status || fatal || connectionError || launchAcknowledged.current || !nativeAvailable()) return;
     // Effects run after the workbench render commits. HTML navigation alone
     // cannot confirm a successful upgrade when session/API startup failed.
@@ -448,38 +381,6 @@ function App() {
     }).catch(() => {});
     return () => { live = false; };
   }, [settings, status, fatal, connectionError]);
-  useEffect(() => {
-    if (!status?.ready) return;
-    const stream = new EventSource("/api/browser/events");
-    stream.onopen = () => { browserStreamReady.current = true; };
-    stream.onerror = () => { browserStreamReady.current = false; };
-    stream.onmessage = (event) => {
-      const b = JSON.parse(event.data);
-      browserSnapshot.current = b;
-      setBrowser((previous) => ({ ...previous, ...b }));
-      setTabs((previous) => {
-        const map = new Map(b.tabs.map((t) => [t.id, t]));
-        return [
-          ...previous
-            .filter((t) => t.kind === "terminal" || map.has(t.id))
-            .map((t) => map.get(t.id) || t),
-          ...b.tabs.filter((t) => !previous.some((p) => p.id === t.id)),
-        ];
-      });
-      if (
-        b.active &&
-        (b.focus ||
-          !activeRef.current ||
-          !activeRef.current.startsWith("terminal:"))
-      )
-        setActive(b.active);
-      browserIds.current = new Set(b.tabs.map((t) => t.id));
-    };
-    return () => {
-      browserStreamReady.current = false;
-      stream.close();
-    };
-  }, [status?.ready]);
   useEffect(() => {
     if (current && current.kind !== "terminal")
       lastBrowserTab.current = current.id;

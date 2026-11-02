@@ -12,13 +12,13 @@
 
 ## 构建并验证
 
-先完成产品改动和相关测试，再运行发行脚本：
+先完成产品改动和相关测试，再使用打包入口：
 
 ```sh
 export CAGE_SIGNING_IDENTITY='Developer ID Application: 你的名称 (TEAMID)'
 export CAGE_NOTARY_PROFILE='你的公证凭据名称'
 unset CAGE_BUILD_OUTPUT
-bash scripts/package-macos.sh
+make package-app
 ```
 
 脚本从源码构建，逐一签名嵌套程序，给控制程序保留虚拟化权限，并启用 Hardened Runtime 与可信时间戳。App 和 DMG 分别提交 Apple 公证、附加票据并验证。公证未通过、签名错误或 Gatekeeper 拒绝时，脚本失败，不生成“可发布”的成功提示。
@@ -30,13 +30,13 @@ bash scripts/package-macos.sh
 - `SHA256SUMS`：上述两个附件的 SHA-256 校验值。
 - `app-notarization.json`、`dmg-notarization.json`、`Cage-notarization.zip`：本地公证过程记录，不作为用户下载附件。
 
-应用内 `Contents/Resources/licenses/` 包含主项目、Go 依赖、前端运行依赖、Mihomo 与 noVNC 的许可材料，以及实际随包使用的 noVNC 修改后源码。维护者应在依赖变化后运行 `scripts/licenses` 更新 Go 依赖许可集合。发行脚本会拒绝缺少许可证的前端运行依赖。
+应用内 `Contents/Resources/licenses/` 包含主项目、Go 依赖、前端运行依赖、Mihomo 与 noVNC 的许可材料，以及实际随包使用的 noVNC 修改后源码。维护者应在依赖变化后运行 `make licenses`，检查并提交 Go 许可集合的变化。完整 App 构建先执行 `make check-licenses`，许可过期时停止，不自动改写文件；构建也会拒绝缺少许可证的前端运行依赖。`NOTICE` 的项目来源和修改说明继续人工维护，见[许可维护说明](../CONTRIBUTING.md#维护第三方许可)。
 
-只做本机开发时可运行 `bash scripts/build-app.sh`，未设置签名身份会使用 ad-hoc 签名。`--install` 可安装到 `~/Applications/Cage.app`，会替换该位置的旧版本。此构建方式不完成公证，不能作为已经通过 Gatekeeper 的下载包宣传。
+只做本机开发时可运行 `make app`，未设置签名身份会使用 ad-hoc 签名。`make install-app` 可安装到 `~/Applications/Cage.app`，会替换该位置的旧版本。此构建方式不完成公证，不能作为已经通过 Gatekeeper 的下载包宣传。
 
-构建先在临时目录验证新 App，再替换目标；目标中的 App 或控制程序仍在运行时，脚本拒绝覆盖。默认目标为 `_output/Cage.app`，并清理构建目录中的其他 Cage App。独立验证可将 `CAGE_BUILD_OUTPUT` 设为绝对 `.app` 路径且不使用 `--install`，此时不清理其他副本。正式打包使用默认目标，应先取消这个自定义变量。
+构建先在临时目录验证新 App，再替换目标；目标中的 App 或控制程序仍在运行时，脚本拒绝覆盖。默认目标为 `_output/Cage.app`，并清理构建目录中的其他 Cage App。独立验证可将 `CAGE_BUILD_OUTPUT` 设为绝对 `.app` 路径并使用 `make app`，此时不清理其他副本。正式打包使用默认目标，应先取消这个自定义变量。
 
-使用 `--install` 时，安装副本先验证再替换到 `~/Applications/Cage.app`，随后清理构建目录及两个 Applications 目录中的其他 Cage App。清理按应用标识核对，跳过符号链接、其他软件，以及 App 或控制程序仍在运行的副本，不删除配置、虚拟磁盘、项目或历史 DMG。目标本身在构建前和替换前均检查是否运行。安装前须保存文件、停止环境并退出。发行打包成功时也会清理构建目录中的 App 副本。
+使用 `make install-app` 时，安装副本先验证再替换到 `~/Applications/Cage.app`，随后清理构建目录及两个 Applications 目录中的其他 Cage App。清理按应用标识核对，跳过符号链接、其他软件，以及 App 或控制程序仍在运行的副本，不删除配置、虚拟磁盘、项目或历史 DMG。目标本身在构建前和替换前均检查是否运行。安装前须保存文件、停止环境并退出。发行打包成功时也会清理构建目录中的 App 副本。
 
 ## Apple 返回等待或失败时
 
@@ -47,7 +47,7 @@ xcrun notarytool info <提交ID> --keychain-profile "$CAGE_NOTARY_PROFILE"
 xcrun notarytool log <提交ID> --keychain-profile "$CAGE_NOTARY_PROFILE" _output/notarization-log.json
 ```
 
-App 提交已 Accepted 时，运行 `xcrun stapler staple _output/Cage.app`，再执行 `bash scripts/package-macos.sh --from-notarized-app` 接续 DMG 制作。此选项要求 App 版本与 `VERSION` 一致且已有有效票据；源码有新改动时必须重新完整构建。
+App 提交已 Accepted 时，运行 `xcrun stapler staple _output/Cage.app`，再执行 `make package-notarized-app` 接续 DMG 制作。此入口要求 App 版本与 `VERSION` 一致且已有有效票据；源码有新改动时必须重新完整构建。
 
 DMG 提交已 Accepted 时，直接对原 DMG 执行 `xcrun stapler staple`、`xcrun stapler validate` 和 `spctl --assess --type open --context context:primary-signature --verbose=2`。附加票据会改变文件内容，必须重新生成校验值。公证被拒时根据 Apple 日志修复并重建；不能用移除隔离属性或关闭 Gatekeeper 代替验收。
 
@@ -63,6 +63,6 @@ DMG 提交已 Accepted 时，直接对原 DMG 执行 `xcrun stapler staple`、`x
 
 ## 客机工具版本与来源
 
-`internal/cage/tool-versions.env` 保存 Cage 首装和受管升级使用的最低版本及平台摘要，`guest-tools.sh` 是共用安装器。code-server 固定为 [4.144.0 官方发行版](https://github.com/coder/code-server/releases/tag/v4.144.0)，mise 固定为 [2026.10.25 官方发行版](https://github.com/jdx/mise/releases/tag/v2026.10.25)；arm64 与 amd64 资产的 SHA-256 来自各项目 GitHub Release API 的资产 `digest` 字段。安装器下载指定版本并核对固定摘要，失败时不运行包安装。Claude Code 使用 npm 的固定版本 `2.1.314`，npm 校验注册表的包完整性。Chromium 从 Debian 的签名软件源更新，采用软件源维护的版本。
+`internal/cage/guest/tool-versions.env` 保存 Cage 首装和受管升级使用的最低版本及平台摘要，同目录的 `guest-tools.sh` 是共用安装器。code-server 固定为 [4.144.0 官方发行版](https://github.com/coder/code-server/releases/tag/v4.144.0)，mise 固定为 [2026.10.25 官方发行版](https://github.com/jdx/mise/releases/tag/v2026.10.25)；arm64 与 amd64 资产的 SHA-256 来自各项目 GitHub Release API 的资产 `digest` 字段。安装器下载指定版本并核对固定摘要，失败时不运行包安装。Claude Code 使用 npm 的固定版本 `2.1.314`，npm 校验注册表的包完整性。Chromium 从 Debian 的签名软件源更新，采用软件源维护的版本。
 
 升级这些最低版本时，需要同时核对官方资产、更新摘要并验证现有持久环境，不能只改显示版本。受管升级保留较新的已安装版本，不清理用户配置，不重建 Linux 磁盘。组件脚本与工具包分别维护：组件摘要正确只证明 Cage 脚本匹配，不表示所有工具已升级或已完成漏洞审计。

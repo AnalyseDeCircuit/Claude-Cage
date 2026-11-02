@@ -16,7 +16,7 @@ type networkIntent struct {
 
 // An absent record can belong to an older profile whose pause was memory-only.
 // Keep it offline until an explicit user operation establishes a durable intent.
-func (s *Server) restoreNetworkIntent() error {
+func (s *Service) restoreNetworkIntent() error {
 	paused, generation := true, uint64(0)
 	data, err := os.ReadFile(filepath.Join(s.profile, "network-intent.json"))
 	if err == nil {
@@ -41,7 +41,7 @@ func (s *Server) restoreNetworkIntent() error {
 }
 
 // Caller holds mu so a later pause cannot be overwritten by a pending resume.
-func (s *Server) saveNetworkIntentLocked(paused bool) error {
+func (s *Service) saveNetworkIntentLocked(paused bool) error {
 	if err := writePrivate(filepath.Join(s.profile, "network-intent.json"), networkIntent{Version: 1, Paused: paused, PauseVersion: s.safety.pauseVersion}); err != nil {
 		s.networkPaused = true
 		return fmt.Errorf("无法保存网络暂停状态，当前外网保持关闭；请解决配置写入问题后重试：%w", err)
@@ -50,7 +50,7 @@ func (s *Server) saveNetworkIntentLocked(paused bool) error {
 	return nil
 }
 
-func (s *Server) resumeNetworkIntentAt(generation uint64) error {
+func (s *Service) resumeNetworkIntentAt(generation uint64) error {
 	s.mu.Lock()
 	if generation != s.safety.pauseVersion {
 		s.mu.Unlock()

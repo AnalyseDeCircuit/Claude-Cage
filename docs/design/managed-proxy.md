@@ -86,7 +86,7 @@ Cage 业务 DNS 继续通过选定节点发送，不回退主机解析器。订�
 
 ## 接入点与验收
 
-`internal/managedproxy` 维护来源、运行配置、下载与核心控制；`internal/cage/egress.go` 及网络准入负责业务出口；`internal/workbench/proxy.go` 承接经工作台认证的管理接口；`ui/src/proxy-settings.jsx` 提供节点、订阅、连接及诊断页面。`scripts/fetch-proxy-core.sh` 固定核心制品，`scripts/build-app.sh` 将其随 App 分发。节点管理器是唯一出口配置来源，网络设置仅提供加密 DNS，不接受手工指定本地出口地址。`proxy_url` 与 `proxy_revision` 是管理器生成的内部字段，通用设置和配置恢复无法覆盖它们。未选节点、未应用或配置版本不一致时，启动、探测和网络授权均拒绝放行。
+`internal/managedproxy` 维护来源、运行配置、下载与核心控制；`internal/cage/egress.go` 及网络准入负责业务出口；`internal/workbench/proxy.go` 承接经工作台认证的管理接口；`ui/src/proxy-settings.jsx` 提供节点、订阅、连接及诊断页面。`scripts/tools/fetch-proxy-core.sh` 固定核心制品，`scripts/tools/build-app.sh` 将其随 App 分发。节点管理器是唯一出口配置来源，网络设置仅提供加密 DNS，不接受手工指定本地出口地址。`proxy_url` 与 `proxy_revision` 是管理器生成的内部字段，通用设置和配置恢复无法覆盖它们。未选节点、未应用或配置版本不一致时，启动、探测和网络授权均拒绝放行。
 
 来源与核心操作使用工作台已有的串行任务机制。管理接口包括 `GET /api/proxy`、`POST /api/proxy/{import,refresh,edit,delete,select,restart,stop}`、`POST /api/proxy/delay` 及连接和诊断摘要的 GET 接口。前端不能传入任意核心控制路径。订阅 URL、认证和节点原始参数只存在私有来源文件中，GET 状态只返回来源主机名及节点显示信息。
 

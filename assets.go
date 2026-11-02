@@ -12,11 +12,11 @@ var CageVersion string
 // SetupScript provisions the base VM: `agent-vm setup` runs it in the guest,
 // after the choices as export lines.
 //
-//go:embed agent-vm.setup.sh
+//go:embed internal/cli/guest/agent-vm.setup.sh
 var SetupScript string
 
 // The license of agent-vm, the notice about third_party/, and the licenses of
-// what the binary is built from (scripts/licenses): `agent-vm licenses`.
+// what the binary is built from (scripts/tools/licenses): `agent-vm licenses`.
 var (
 	//go:embed LICENSE
 	License string

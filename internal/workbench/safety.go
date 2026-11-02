@@ -17,6 +17,7 @@ import (
 
 	"al.essio.dev/pkg/shellescape"
 	"github.com/sylvinus/agent-vm/internal/cage"
+	"github.com/sylvinus/agent-vm/internal/projects"
 	"github.com/sylvinus/agent-vm/internal/vmname"
 	"go.yaml.in/yaml/v3"
 )
@@ -62,11 +63,11 @@ type browserObservation struct {
 	Network          networkObservation `json:"network"`
 }
 
-func (s *Server) gateClient() (*cage.GateClient, error) {
+func (s *Service) gateClient() (*cage.GateClient, error) {
 	return cage.OpenGateClient(filepath.Join(s.profile, "state", "lima", vmname.Name(s.environmentDir())))
 }
 
-func (s *Server) publishGate(state cage.GateStatus) {
+func (s *Service) publishGate(state cage.GateStatus) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if old := s.safety.Gate; old != nil && old.RunID == state.RunID && old.Epoch > state.Epoch {
@@ -78,7 +79,7 @@ func (s *Server) publishGate(state cage.GateStatus) {
 	}
 }
 
-func (s *Server) publishReport(report cage.SafetyReport) {
+func (s *Service) publishReport(report cage.SafetyReport) {
 	copy := report
 	copy.Checks = append([]cage.SafetyCheck(nil), report.Checks...)
 	s.mu.Lock()
@@ -98,11 +99,11 @@ func (s *Server) pauseNetwork(w http.ResponseWriter, r *http.Request) {
 	jsonReply(w, map[string]bool{"paused": true})
 }
 
-func (s *Server) pauseNetworkNow(reason string) error {
+func (s *Service) pauseNetworkNow(reason string) error {
 	return s.revokeNetworkNow(reason, true)
 }
 
-func (s *Server) revokeNetworkNow(reason string, pause bool) error {
+func (s *Service) revokeNetworkNow(reason string, pause bool) error {
 	var intentErr error
 	s.mu.Lock()
 	if pause {
@@ -143,7 +144,7 @@ func (s *Server) safetyExport(w http.ResponseWriter, r *http.Request) {
 	jsonReply(w, map[string]any{"policy": report.Policy, "created_at": report.CreatedAt, "checks": report.Checks, "scope": "采样与运行时策略检查；不代表平台账号资格或完整虚拟化审计"})
 }
 
-func (s *Server) guestObservation(ctx context.Context, input map[string]any) (guestObservation, error) {
+func (s *Service) guestObservation(ctx context.Context, input map[string]any) (guestObservation, error) {
 	var observation guestObservation
 	data, err := json.Marshal(input)
 	if err != nil {
@@ -157,13 +158,12 @@ func (s *Server) guestObservation(ctx context.Context, input map[string]any) (gu
 	return observation, nil
 }
 
-func (s *Server) browserObservation(ctx context.Context, cfg cage.Config, network bool) (browserObservation, error) {
+func (s *Service) browserObservation(ctx context.Context, cfg cage.Config, network bool) (browserObservation, error) {
 	var observation browserObservation
 	s.mu.Lock()
 	token := s.credentials.Token
 	s.mu.Unlock()
-	body, _ := json.Marshal(map[string]any{"network": network, "timezone": cfg.Timezone})
-	data, err := s.guestAPI(ctx, token, "POST", "/audit", body)
+	data, err := s.browserClient().Audit(ctx, token, network, cfg.Timezone)
 	if err != nil || json.Unmarshal(data, &observation) != nil {
 		return observation, errors.New("浏览器检测未返回完整结果，请更新或重启环境")
 	}
@@ -177,8 +177,8 @@ func browserSettingsMatch(v browserObservation, cfg cage.Config) bool {
 	return v.Timezone != "" && v.Timezone == v.ExpectedTimezone && strings.EqualFold(v.Language, cfg.BrowserLanguage) && strings.HasPrefix(v.Platform, "Linux")
 }
 
-func (s *Server) inspectVMLayout() (bool, bool) {
-	workspace, err := validateWorkspace(s.environmentDir(), s.profile)
+func (s *Service) inspectVMLayout() (bool, bool) {
+	workspace, err := projects.ValidateWorkspace(s.environmentDir(), s.profile)
 	if err != nil {
 		return false, false
 	}
@@ -217,7 +217,7 @@ func (s *Server) inspectVMLayout() (bool, bool) {
 	return shares, len(spec.Networks) == 0
 }
 
-func (s *Server) managementRequiresSession(ctx context.Context) bool {
+func (s *Service) managementRequiresSession(ctx context.Context) bool {
 	client := &http.Client{Transport: &http.Transport{Proxy: nil}, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("redirect refused") }}
 	defer client.CloseIdleConnections()
 	req, _ := http.NewRequestWithContext(ctx, "GET", s.origin+"/api/settings", nil)
@@ -231,7 +231,7 @@ func (s *Server) managementRequiresSession(ctx context.Context) bool {
 
 // A location is cached by its measured address, never borrowed from the last
 // proxy request. The provider's free quota makes per-heartbeat lookups wasteful.
-func (s *Server) locationForIP(ctx context.Context, cfg cage.Config, ip string) (Location, error) {
+func (s *Service) locationForIP(ctx context.Context, cfg cage.Config, ip string) (Location, error) {
 	s.mu.Lock()
 	loc, ok := s.locations[ip]
 	if !ok && s.location != nil && s.location.IP == ip {
@@ -267,7 +267,7 @@ func (s *Server) locationForIP(ctx context.Context, cfg cage.Config, ip string) 
 	return loc, nil
 }
 
-func (s *Server) checkExitPolicy(ctx context.Context, cfg cage.Config, ip string) (cage.CheckState, string) {
+func (s *Service) checkExitPolicy(ctx context.Context, cfg cage.Config, ip string) (cage.CheckState, string) {
 	policy := cfg.ExitPolicy.Normalized()
 	if policy.Mode == "static" || policy.Scope == "any" {
 		return policy.Evaluate(ip, nil)
@@ -284,7 +284,7 @@ func (s *Server) checkExitPolicy(ctx context.Context, cfg cage.Config, ip string
 	return state, message
 }
 
-func (s *Server) runSafetyCheck() (returned error) {
+func (s *Service) runSafetyCheck() (returned error) {
 	defer func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -532,9 +532,10 @@ func (s *Server) runSafetyCheck() (returned error) {
 
 // Monitoring renews a short host-owned lease without replaying the disruptive
 // failure drill. Lost supervision eventually closes existing guest connections.
-func (s *Server) monitorSafety() {
+func (s *Service) monitorSafety() {
 	s.mu.Lock()
-	ready, busy, last := s.ready, (s.job.Running && s.job.Kind != "environment-tools") || s.networkPaused, s.safety.VerifiedAt
+	job := s.jobQueueLocked().Snapshot()
+	ready, busy, last := s.ready, (job.Running && job.Kind != "environment-tools") || s.networkPaused, s.safety.VerifiedAt
 	s.mu.Unlock()
 	if !ready || busy || time.Since(last) < 30*time.Second {
 		return
@@ -547,7 +548,7 @@ func (s *Server) monitorSafety() {
 		s.mu.Unlock()
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(s.lifetimeContext(), 45*time.Second)
 	s.mu.Lock()
 	s.monitorCancel = cancel
 	s.mu.Unlock()
@@ -602,11 +603,12 @@ func (s *Server) monitorSafety() {
 }
 
 // Recheck the user operation and configuration at the actual lease write.
-func (s *Server) finishSafetyMonitor(ctx context.Context, client *cage.GateClient, state cage.GateStatus, ip, issue string) {
+func (s *Service) finishSafetyMonitor(ctx context.Context, client *cage.GateClient, state cage.GateStatus, ip, issue string) {
 	s.safetyOp.Lock()
 	defer s.safetyOp.Unlock()
 	s.mu.Lock()
-	busy := (s.job.Running && s.job.Kind != "environment-tools") || s.networkPaused
+	job := s.jobQueueLocked().Snapshot()
+	busy := (job.Running && job.Kind != "environment-tools") || s.networkPaused
 	s.mu.Unlock()
 	if busy {
 		return

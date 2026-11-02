@@ -5,7 +5,7 @@
 # makes them (a tarball per platform: agent-vm and agent-vm.sh), one laid out
 # as 0.2's, and a clone whose make builds a stub binary: nothing is
 # downloaded or built. Then what 0.2 left behind: its link to agent-vm.sh,
-# and a shell rc sourcing it. Run by TestInstaller (setup_script_test.go), or
+# and a shell rc sourcing it. Run by TestInstaller (tests/scripts_test.go), or
 # alone:
 #
 #   tests/installer.sh
@@ -99,7 +99,7 @@ make_release() {  # <version> [corrupt]
   for p in "$OTHER" "$PLATFORM"; do
     local s="$WF/stage-$1-$p/agent-vm-$1"
     mkdir -p "$s"
-    cp "$SELF_DIR/agent-vm.sh" "$s/"
+    cp "$SELF_DIR/scripts/tools/upstream/agent-vm.sh" "$s/"
     stub_binary "$s/agent-vm" "$1-$p"
     tar -czf "$d/agent-vm-$1-$p.tar.gz" -C "$WF/stage-$1-$p" "agent-vm-$1"
     local sum; sum="$(sha256 "$d/agent-vm-$1-$p.tar.gz")"
@@ -121,7 +121,7 @@ make_old_release() {  # <version>
 
 # The clone: agent-vm.sh, and a make that builds a stub binary, counted.
 mkdir -p "$WF/src"
-cp "$SELF_DIR/agent-vm.sh" "$WF/src/"
+cp "$SELF_DIR/scripts/tools/upstream/agent-vm.sh" "$WF/src/"
 cat > "$WF/src/Makefile" <<'EOF'
 agent-vm:
 	echo built >> "$$WF/builds"
@@ -200,7 +200,7 @@ case "$out" in *"checksum mismatch"*) pass "bad checksum: said" ;; *) fail "bad 
 mkdir -p "$SB/winbin" "$WF/v1.1.8" "$WF/stage-win/agent-vm-1.1.8"
 printf '#!/bin/sh\ncase "$1" in -s) echo MINGW64_NT-10.0 ;; -m) echo x86_64 ;; esac\n' > "$SB/winbin/uname"
 chmod +x "$SB/winbin/uname"
-cp "$SELF_DIR/agent-vm.sh" "$WF/stage-win/agent-vm-1.1.8/"
+cp "$SELF_DIR/scripts/tools/upstream/agent-vm.sh" "$WF/stage-win/agent-vm-1.1.8/"
 stub_binary "$WF/stage-win/agent-vm-1.1.8/agent-vm.exe" 1.1.8-windows-amd64
 tar -czf "$WF/v1.1.8/agent-vm-1.1.8-windows-amd64.tar.gz" -C "$WF/stage-win" agent-vm-1.1.8
 printf '%s  agent-vm-1.1.8-windows-amd64.tar.gz\n' "$(sha256 "$WF/v1.1.8/agent-vm-1.1.8-windows-amd64.tar.gz")" > "$WF/v1.1.8/SHA256SUMS"
@@ -249,6 +249,17 @@ check "a 0.2 link into a clone, after a pull: rebuilt, then run" "$(wc -l < "$WF
 out="$(winst)"; rc=$?
 check "release over a clone: refused" "$rc" "1"
 case "$out" in *"is a git clone"*"git -C"*) pass "release over a clone: says how to update it" ;; *) fail "release over a clone: $out" ;; esac
+
+# A source launcher under scripts/tools/upstream still builds from the repository
+# root, including when invoked through a symlink from another directory.
+nested="$WF/nested"
+mkdir -p "$nested/scripts/tools/upstream" "$nested/.git"
+cp "$SELF_DIR/scripts/tools/upstream/agent-vm.sh" "$nested/scripts/tools/upstream/"
+cp "$WF/src/Makefile" "$WF/src/stub" "$nested/"
+ln -s "$nested/scripts/tools/upstream/agent-vm.sh" "$SB/nested-link"
+: > "$WF/ran"
+( cd "$SB" && export WF PATH="$WBIN:$PATH"; "$SB/nested-link" version ) 2>/dev/null
+check "relocated source launcher: builds from the repository root through a symlink" "$?:$(cat "$WF/ran")" "0:clone version"
 
 # A download cut short must run nothing: only the last line calls main.
 rm -rf "$WDIR"

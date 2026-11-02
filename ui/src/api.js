@@ -1,3 +1,13 @@
+import { native, nativeAvailable } from "./desktop.js";
+
+// Existing imports remain valid; desktop callers use desktop.js directly.
+export {
+  native,
+  nativeAvailable,
+  readClipboard,
+  writeClipboard,
+} from "./desktop.js";
+
 let sessionRenewal;
 async function responseError(response) {
   const error = new Error(
@@ -27,33 +37,36 @@ async function renewSession() {
   }
   return sessionRenewal;
 }
-export async function api(path, body, method) {
+export async function api(path, body, method, { signal } = {}) {
   const options = {
     method: method || (body === undefined ? "GET" : "POST"),
     headers: body === undefined ? {} : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
   };
   let response = await fetch("/api" + path, options);
   // Authentication fails before a handler runs, so retrying this rejected
   // request once does not repeat an accepted mutation.
   if (response.status === 401 && path !== "/session" && nativeAvailable()) {
     await renewSession();
+    signal?.throwIfAborted();
     response = await fetch("/api" + path, options);
   }
   if (!response.ok) throw await responseError(response);
   return response.json();
 }
-export const nativeAvailable = () =>
-  Boolean(window.webkit?.messageHandlers?.cage);
-export async function native(action, extra = {}) {
-  return window.webkit.messageHandlers.cage.postMessage({ action, ...extra });
+
+export async function initializeSession(signal) {
+  const token = location.hash.slice(1);
+  if (!token) return;
+  await api("/session", { token }, undefined, { signal });
+  signal?.throwIfAborted();
+  history.replaceState(null, "", location.pathname);
 }
-export const readClipboard = () =>
-  nativeAvailable() ? native("clipboardRead") : navigator.clipboard.readText();
-export const writeClipboard = (text) =>
-  nativeAvailable()
-    ? native("clipboardWrite", { text })
-    : navigator.clipboard.writeText(text);
+
+export function controlSocketURL(path) {
+  return `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api${path}`;
+}
 export function normalizeURL(text) {
   const value = text.trim();
   if (!value || value === "about:blank") return "about:blank";

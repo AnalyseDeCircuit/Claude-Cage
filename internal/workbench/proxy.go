@@ -105,7 +105,7 @@ func (s *Server) proxyMutation(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 	s.launch(w, "proxy", func() error { return s.changeProxy(action, input, &pauseVersion) })
 }
-func (s *Server) subscriptionClient(host bool) (*http.Client, error) {
+func (s *Service) subscriptionClient(host bool) (*http.Client, error) {
 	if host {
 		return managedproxy.BootstrapClient(), nil
 	}
@@ -127,7 +127,7 @@ func (s *Server) subscriptionClient(host bool) (*http.Client, error) {
 		return nil
 	}}, nil
 }
-func (s *Server) changeProxy(action string, in proxyInput, resumeVersion *uint64) error {
+func (s *Service) changeProxy(action string, in proxyInput, resumeVersion *uint64) error {
 	p, err := managedproxy.Load(s.profile)
 	if err != nil {
 		return err
@@ -255,7 +255,7 @@ func (s *Server) changeProxy(action string, in proxyInput, resumeVersion *uint64
 	return p.Save(s.profile)
 }
 
-func (s *Server) proxySourceFailure(id string, failure error) {
+func (s *Service) proxySourceFailure(id string, failure error) {
 	if id == "" {
 		return
 	}
@@ -272,20 +272,20 @@ func (s *Server) proxySourceFailure(id string, failure error) {
 		}
 	}
 }
-func (s *Server) closeProxyGate(reason string) error {
+func (s *Service) closeProxyGate(reason string) error {
 	if !s.vmRunning() {
 		return nil
 	}
 	return s.revokeNetworkNow(reason, false)
 }
 
-func (s *Server) activateProxy(p managedproxy.Store, old cage.Config) (returned error) {
+func (s *Service) activateProxy(p managedproxy.Store, old cage.Config) (returned error) {
 	// The explicit start operation already requested networking. A pause made
 	// after that request must survive any core recovery within the start.
 	return s.applyProxy(p, old, nil)
 }
 
-func (s *Server) applyProxy(p managedproxy.Store, old cage.Config, resumeVersion *uint64) (returned error) {
+func (s *Service) applyProxy(p managedproxy.Store, old cage.Config, resumeVersion *uint64) (returned error) {
 	ctx := s.operationContext()
 	previous, err := managedproxy.Load(s.profile)
 	if err != nil {
@@ -448,7 +448,7 @@ func (s *Server) proxyLogs(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 	jsonReply(w, map[string]any{"lines": lines})
 }
-func (s *Server) refreshProxySubscriptions() {
+func (s *Service) refreshProxySubscriptions() {
 	if s.busy() {
 		return
 	}
@@ -459,13 +459,13 @@ func (s *Server) refreshProxySubscriptions() {
 	for _, src := range p.Sources {
 		if src.URL != "" && src.Interval > 0 && time.Since(src.Updated) >= time.Duration(src.Interval)*time.Hour && time.Since(src.Attempted) > 15*time.Minute {
 			// Automatic refresh never opts into a host-network fallback.
-			s.launch(&discardResponse{}, "proxy-update", func() error { return s.changeProxy("refresh", proxyInput{ID: src.ID}, nil) })
+			_, _ = s.submit("proxy-update", func() error { return s.changeProxy("refresh", proxyInput{ID: src.ID}, nil) })
 			return
 		}
 	}
 }
 
-func (s *Server) checkProxyHealth() {
+func (s *Service) checkProxyHealth() {
 	if s.busy() {
 		return
 	}
@@ -478,7 +478,7 @@ func (s *Server) checkProxyHealth() {
 		return
 	}
 	p, err := managedproxy.Load(s.profile)
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(s.lifetimeContext(), 2*time.Second)
 	defer cancel()
 	if err == nil && cfg.RequireManagedProxy(s.profile) == nil && managedproxy.Running(ctx, s.profile, p) {
 		return
@@ -488,15 +488,3 @@ func (s *Server) checkProxyHealth() {
 	s.networkError = "内置代理未就绪；外网保持关闭"
 	s.mu.Unlock()
 }
-
-// Keep automatic job responses local instead of creating a control client.
-type discardResponse struct{ header http.Header }
-
-func (w *discardResponse) Header() http.Header {
-	if w.header == nil {
-		w.header = http.Header{}
-	}
-	return w.header
-}
-func (*discardResponse) Write(b []byte) (int, error) { return len(b), nil }
-func (*discardResponse) WriteHeader(int)             {}

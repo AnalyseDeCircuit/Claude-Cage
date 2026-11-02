@@ -1,5 +1,5 @@
 // Package cli is agent-vm's command line. The commands and options are those
-// of 0.2's agent-vm.sh, with the additions and changes of 0.3 in CHANGELOG.md
+// of 0.2's agent-vm.sh, with the additions and changes of 0.3 in docs/upstream/CHANGELOG.md
 // (--scratch, install, info, code, exit status 2 for wrong usage...).
 package cli
 

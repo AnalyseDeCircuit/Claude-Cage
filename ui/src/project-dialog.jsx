@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FolderOpen, LoaderCircle } from "lucide-react";
-import { api, native, nativeAvailable } from "./api";
+import { api } from "./api";
+import { native, nativeAvailable } from "./desktop";
 import { Modal } from "./views";
 
 export function ProjectDialog({

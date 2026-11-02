@@ -53,7 +53,7 @@ const canonical = new URL(pathFor(locale), Astro.site);
 
     <section class="license wrap"><h2>{c.licenseTitle}</h2><p>{c.licenseText}</p></section>
   </main>
-  <footer class="wrap"><a class="brand" href={pathFor(locale)}><img src={`${base}cage-icon.png`} width="28" height="28" alt="" />Claude Cage</a><div><a href={repo}>GitHub ↗</a><a href={`${repo}/blob/main/${locale === 'zh' ? 'README.md' : `README.${locale}.md`}`}>README ↗</a></div><small>{c.independent}</small></footer>
+  <footer class="wrap"><a class="brand" href={pathFor(locale)}><img src={`${base}cage-icon.png`} width="28" height="28" alt="" />Claude Cage</a><div><a href={repo}>GitHub ↗</a><a href={`${repo}/blob/main/${c.readmePath}`}>README ↗</a></div><small>{c.independent}</small></footer>
   <script>
     const language = document.querySelector<HTMLSelectElement>('#site-language');
     language?.addEventListener('change', () => { window.location.assign(language.value); });
