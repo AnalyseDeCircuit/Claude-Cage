@@ -1,12 +1,18 @@
-# Claude Cage
+<div align="center">
+
+<h1>Claude Cage</h1>
+
+<p><strong>Gardez Miss Claude dans une cage pour que nous puissions mieux protéger notre temps ensemble</strong></p>
+
+<img src="assets/claude-cage-character.png" alt="Claude Cage" width="320" />
+
+[![Release](https://img.shields.io/github/v/release/Lee-xeo/Claude-Cage?include_prereleases)](https://github.com/Lee-xeo/Claude-Cage/releases) [![CI](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**[Site Web du projet](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [Télécharger l’application](https://lee-xeo.github.io/Claude-Cage/fr/#download) · [Commencer](docs/getting-started.md) · [FAQ](docs/troubleshooting.md) · [Contribuer](CONTRIBUTING.md)**
 
 [简体中文](README.md) · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [فارسی](README.fa.md) · [한국어](README.ko.md) · [Español](README.es.md) · [မြန်မာဘာသာ](README.my.md) · [Беларуская](README.be.md) · [پښتو](README.ps.md) · [دری](README.prs.md) · [አማርኛ](README.am.md) · [Soomaali](README.so.md) · [ትግርኛ](README.ti.md) · [Français](README.fr.md)
 
-**Gardez Miss Claude dans une cage pour que nous puissions mieux protéger notre temps ensemble**
-
-<img src="assets/claude-cage-character.png" alt="hugo" style="zoom: 25%;" />
-
-[Site Web du projet](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [Télécharger l’application](https://lee-xeo.github.io/Claude-Cage/fr/#download) · [Commencer](docs/getting-started.md) · [FAQ](docs/troubleshooting.md) · [Contribuer](CONTRIBUTING.md)
+</div>
 
 ## Assez d’Anthropic
 
@@ -21,7 +27,9 @@ Claude Cage est une machine virtuelle Linux légère qui combine un terminal Lin
 
 **Résultats de la vérification de l'environnement avec Cage :**
 
-<img src="assets/network-checks.png" alt="image-20261101144540952" style="zoom:25%;" /><img src="assets/community-browser-check.png" alt="image-20261101144620093" style="zoom:18%;" />
+| Contrôles du réseau et de l’isolation | Contrôle communautaire du navigateur |
+| :---: | :---: |
+| <a href="assets/network-checks.png"><img src="assets/network-checks.png" alt="Contrôles du réseau et de l’isolation" width="400" /></a> | <a href="assets/community-browser-check.png"><img src="assets/community-browser-check.png" alt="Contrôle communautaire du navigateur" width="400" /></a> |
 
 **L'interface principale de Cage :**
 
@@ -96,7 +104,9 @@ Pour l'index complet, voir [Index des documents](docs/README.md).
 
 Le projet évolue rapidement. Rejoignez le groupe communautaire pour partager vos commentaires ; les responsables de la communauté sont les bienvenus.
 
-<img src="assets/community-qq.png" alt="qq" style="zoom:25%;" />
+<p align="center">
+  <a href="assets/community-qq.png"><img src="assets/community-qq.png" alt="QQ · 1134250870" width="240" /></a>
+</p>
 
 ## Origines et licences
 

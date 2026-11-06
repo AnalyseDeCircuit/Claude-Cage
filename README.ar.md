@@ -1,12 +1,18 @@
-# Claude Cage
+<div align="center">
+
+<h1>Claude Cage</h1>
+
+<p><strong>احتفظ بالآنسة كلود في قفص، حتى نتمكن من حماية وقتنا معًا بشكل أفضل</strong></p>
+
+<img src="assets/claude-cage-character.png" alt="Claude Cage" width="320" />
+
+[![Release](https://img.shields.io/github/v/release/Lee-xeo/Claude-Cage?include_prereleases)](https://github.com/Lee-xeo/Claude-Cage/releases) [![CI](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**[موقع المشروع](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [تنزيل التطبيق](https://lee-xeo.github.io/Claude-Cage/ar/#download) · [البدء](docs/getting-started.md) · [الأسئلة الشائعة](docs/troubleshooting.md) · [ساهم](CONTRIBUTING.md)**
 
 [简体中文](README.md) · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [فارسی](README.fa.md) · [한국어](README.ko.md) · [Español](README.es.md) · [မြန်မာဘာသာ](README.my.md) · [Беларуская](README.be.md) · [پښتو](README.ps.md) · [دری](README.prs.md) · [አማርኛ](README.am.md) · [Soomaali](README.so.md) · [ትግርኛ](README.ti.md) · [Français](README.fr.md)
 
-**احتفظ بالآنسة كلود في قفص، حتى نتمكن من حماية وقتنا معًا بشكل أفضل**
-
-<img src="assets/claude-cage-character.png" alt="hugo" style="zoom: 25%;" />
-
-[موقع المشروع](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [تنزيل التطبيق](https://lee-xeo.github.io/Claude-Cage/ar/#download) · [البدء](docs/getting-started.md) · [الأسئلة الشائعة](docs/troubleshooting.md) · [ساهم](CONTRIBUTING.md)
+</div>
 
 ## ضقنا ذرعًا بـ Anthropic
 
@@ -21,7 +27,9 @@ Claude Cage عبارة عن جهاز Linux افتراضي خفيف الوزن ي
 
 **نتائج فحص البيئة باستخدام Cage:**
 
-<img src="assets/network-checks.png" alt="image-20261101144540952" style="zoom:25%;" /><img src="assets/community-browser-check.png" alt="image-20261101144620093" style="zoom:18%;" />
+| فحص الشبكة والعزل | فحص المتصفح من المجتمع |
+| :---: | :---: |
+| <a href="assets/network-checks.png"><img src="assets/network-checks.png" alt="فحص الشبكة والعزل" width="400" /></a> | <a href="assets/community-browser-check.png"><img src="assets/community-browser-check.png" alt="فحص المتصفح من المجتمع" width="400" /></a> |
 
 **الواجهة الرئيسية للقفص:**
 
@@ -96,7 +104,9 @@ Claude Cage عبارة عن جهاز Linux افتراضي خفيف الوزن ي
 
 المشروع يتطور بسرعة. انضم إلى مجموعة المجتمع لمشاركة التعليقات؛ مشرفو المجتمع مرحب بهم.
 
-<img src="assets/community-qq.png" alt="qq" style="zoom:25%;" />
+<p align="center">
+  <a href="assets/community-qq.png"><img src="assets/community-qq.png" alt="QQ · 1134250870" width="240" /></a>
+</p>
 
 ## الأصول والترخيص
 

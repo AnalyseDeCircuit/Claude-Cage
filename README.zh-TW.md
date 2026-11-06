@@ -1,12 +1,18 @@
-# Claude Cage
+<div align="center">
+
+<h1>Claude Cage</h1>
+
+<p><strong>把 Claude 大小姐關起來，為了更好地保護我們的相遇</strong></p>
+
+<img src="assets/claude-cage-character.png" alt="Claude Cage" width="320" />
+
+[![Release](https://img.shields.io/github/v/release/Lee-xeo/Claude-Cage?include_prereleases)](https://github.com/Lee-xeo/Claude-Cage/releases) [![CI](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**[專案主頁](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [下載應用程式](https://lee-xeo.github.io/Claude-Cage/zh-TW/#download) · [開始使用](docs/getting-started.md) · [常見問題](docs/troubleshooting.md) · [參與開發](CONTRIBUTING.md)**
 
 [简体中文](README.md) · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [فارسی](README.fa.md) · [한국어](README.ko.md) · [Español](README.es.md) · [မြန်မာဘာသာ](README.my.md) · [Беларуская](README.be.md) · [پښتو](README.ps.md) · [دری](README.prs.md) · [አማርኛ](README.am.md) · [Soomaali](README.so.md) · [ትግርኛ](README.ti.md) · [Français](README.fr.md)
 
-**把 Claude 大小姐關起來，為了更好地保護我們的相遇**
-
-<img src="assets/claude-cage-character.png" alt="hugo" style="zoom: 25%;" />
-
-[專案主頁](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [下載應用程式](https://lee-xeo.github.io/Claude-Cage/zh-TW/#download) · [開始使用](docs/getting-started.md) · [常見問題](docs/troubleshooting.md) · [參與開發](CONTRIBUTING.md)
+</div>
 
 ## 受夠了 Anthropic
 
@@ -21,7 +27,9 @@ Claude Cage 是一個輕量 Linux 虛擬機器，把 Linux 終端、瀏覽器和
 
 **使用 Cage 的環境檢測結果：**
 
-<img src="assets/network-checks.png" alt="image-20261101144540952" style="zoom:25%;" /><img src="assets/community-browser-check.png" alt="image-20261101144620093" style="zoom:18%;" />
+| 網路與隔離檢查 | 社群瀏覽器檢查 |
+| :---: | :---: |
+| <a href="assets/network-checks.png"><img src="assets/network-checks.png" alt="網路與隔離檢查" width="400" /></a> | <a href="assets/community-browser-check.png"><img src="assets/community-browser-check.png" alt="社群瀏覽器檢查" width="400" /></a> |
 
 **Cage 執行主介面：**
 
@@ -96,7 +104,9 @@ Cage 支援 macOS、Windows 和 Linux：macOS 14+ 的 Apple Silicon Mac、Window
 
 本專案仍在快速迭代中，歡迎加入交流群提意見，歡迎社群大佬一起維護
 
-<img src="assets/community-qq.png" alt="qq" style="zoom:25%;" />
+<p align="center">
+  <a href="assets/community-qq.png"><img src="assets/community-qq.png" alt="QQ · 1134250870" width="240" /></a>
+</p>
 
 ## 來源與許可
 

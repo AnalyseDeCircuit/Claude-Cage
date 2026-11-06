@@ -1,12 +1,18 @@
-# Claude Cage
+<div align="center">
+
+<h1>Claude Cage</h1>
+
+<p><strong>클로드 양을 우리에 가둬서 우리가 함께하는 시간을 더 잘 보호할 수 있도록</strong></p>
+
+<img src="assets/claude-cage-character.png" alt="Claude Cage" width="320" />
+
+[![Release](https://img.shields.io/github/v/release/Lee-xeo/Claude-Cage?include_prereleases)](https://github.com/Lee-xeo/Claude-Cage/releases) [![CI](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**[프로젝트 웹사이트](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [앱 다운로드](https://lee-xeo.github.io/Claude-Cage/ko/#download) · [시작하기](docs/getting-started.md) · [FAQ](docs/troubleshooting.md) · [기여](CONTRIBUTING.md)**
 
 [简体中文](README.md) · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [فارسی](README.fa.md) · [한국어](README.ko.md) · [Español](README.es.md) · [မြန်မာဘာသာ](README.my.md) · [Беларуская](README.be.md) · [پښتو](README.ps.md) · [دری](README.prs.md) · [አማርኛ](README.am.md) · [Soomaali](README.so.md) · [ትግርኛ](README.ti.md) · [Français](README.fr.md)
 
-**클로드 양을 우리에 가둬서 우리가 함께하는 시간을 더 잘 보호할 수 있도록**
-
-<img src="assets/claude-cage-character.png" alt="hugo" style="zoom: 25%;" />
-
-[프로젝트 웹사이트](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [앱 다운로드](https://lee-xeo.github.io/Claude-Cage/ko/#download) · [시작하기](docs/getting-started.md) · [FAQ](docs/troubleshooting.md) · [기여](CONTRIBUTING.md)
+</div>
 
 ## Anthropic에 지쳤습니다
 
@@ -21,7 +27,9 @@ Claude Cage는 Linux 터미널, 브라우저 및 파일 편집기를 단일 데�
 
 **Cage를 사용한 환경 점검 결과:**
 
-<img src="assets/network-checks.png" alt="image-20261101144540952" style="zoom:25%;" /><img src="assets/community-browser-check.png" alt="image-20261101144620093" style="zoom:18%;" />
+| 네트워크 및 격리 검사 | 커뮤니티 브라우저 검사 |
+| :---: | :---: |
+| <a href="assets/network-checks.png"><img src="assets/network-checks.png" alt="네트워크 및 격리 검사" width="400" /></a> | <a href="assets/community-browser-check.png"><img src="assets/community-browser-check.png" alt="커뮤니티 브라우저 검사" width="400" /></a> |
 
 **Cage의 기본 인터페이스:**
 
@@ -96,7 +104,9 @@ macOS 및 Windows 인앱 업데이트는 선택한 프록시로 다운로드하�
 
 이 프로젝트는 빠르게 발전하고 있습니다. 피드백을 공유하려면 커뮤니티 그룹에 가입하세요. 커뮤니티 관리자를 환영합니다.
 
-<img src="assets/community-qq.png" alt="qq" style="zoom:25%;" />
+<p align="center">
+  <a href="assets/community-qq.png"><img src="assets/community-qq.png" alt="QQ · 1134250870" width="240" /></a>
+</p>
 
 ## 원산지 및 라이선스
 

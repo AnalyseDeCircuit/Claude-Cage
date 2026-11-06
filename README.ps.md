@@ -1,12 +1,18 @@
-# Claude Cage
+<div align="center">
+
+<h1>Claude Cage</h1>
+
+<p><strong>مس کلاډ په پنجره کې وساتئ، نو موږ کولی شو خپل وخت په ګډه خوندي کړو</strong></p>
+
+<img src="assets/claude-cage-character.png" alt="Claude Cage" width="320" />
+
+[![Release](https://img.shields.io/github/v/release/Lee-xeo/Claude-Cage?include_prereleases)](https://github.com/Lee-xeo/Claude-Cage/releases) [![CI](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**[د پروژې ویب پاڼه](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [اپلیکیشن ډاونلوډ کړئ](https://lee-xeo.github.io/Claude-Cage/ps/#download) · [پیل کول](docs/getting-started.md) · [FAQ](docs/troubleshooting.md) · [مرسته وکړي](CONTRIBUTING.md)**
 
 [简体中文](README.md) · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [فارسی](README.fa.md) · [한국어](README.ko.md) · [Español](README.es.md) · [မြန်မာဘာသာ](README.my.md) · [Беларуская](README.be.md) · [پښتو](README.ps.md) · [دری](README.prs.md) · [አማርኛ](README.am.md) · [Soomaali](README.so.md) · [ትግርኛ](README.ti.md) · [Français](README.fr.md)
 
-**مس کلاډ په پنجره کې وساتئ، نو موږ کولی شو خپل وخت په ګډه خوندي کړو**
-
-<img src="assets/claude-cage-character.png" alt="hugo" style="zoom: 25%;" />
-
-[د پروژې ویب پاڼه](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [اپلیکیشن ډاونلوډ کړئ](https://lee-xeo.github.io/Claude-Cage/ps/#download) · [پیل کول](docs/getting-started.md) · [FAQ](docs/troubleshooting.md) · [مرسته وکړي](CONTRIBUTING.md)
+</div>
 
 ## له Anthropic څخه ستړي شوي یو
 
@@ -21,7 +27,9 @@
 
 **د Cage سره د چاپیریال چک پایلې:**
 
-<img src="assets/network-checks.png" alt="image-20261101144540952" style="zoom:25%;" /><img src="assets/community-browser-check.png" alt="image-20261101144620093" style="zoom:18%;" />
+| د شبکې او جلاوالي کتنې | د ټولنې د براوزر کتنه |
+| :---: | :---: |
+| <a href="assets/network-checks.png"><img src="assets/network-checks.png" alt="د شبکې او جلاوالي کتنې" width="400" /></a> | <a href="assets/community-browser-check.png"><img src="assets/community-browser-check.png" alt="د ټولنې د براوزر کتنه" width="400" /></a> |
 
 **د Cage اصلي انٹرفیس:**
 
@@ -96,7 +104,9 @@ Cage د macOS، Windows او Linux ملاتړ کوي: Apple Silicon له macOS 1
 
 پروژه په چټکۍ سره وده کوي. د نظر شریکولو لپاره د ټولنې ګروپ کې ګډون وکړئ؛ د ټولنې ساتونکي ښه راغلاست.
 
-<img src="assets/community-qq.png" alt="qq" style="zoom:25%;" />
+<p align="center">
+  <a href="assets/community-qq.png"><img src="assets/community-qq.png" alt="QQ · 1134250870" width="240" /></a>
+</p>
 
 ## اصل او جواز ورکول
 

@@ -1,12 +1,18 @@
-# Claude Cage
+<div align="center">
+
+<h1>Claude Cage</h1>
+
+<p><strong>Miss Claude ကို လှောင်အိမ်ထဲတွင် ထားပါ၊ ထို့ကြောင့် ကျွန်ုပ်တို့၏အချိန်များကို အတူတကွ ပိုမိုကောင်းမွန်စွာ ကာကွယ်နိုင်မည်ဖြစ်သည်။</strong></p>
+
+<img src="assets/claude-cage-character.png" alt="Claude Cage" width="320" />
+
+[![Release](https://img.shields.io/github/v/release/Lee-xeo/Claude-Cage?include_prereleases)](https://github.com/Lee-xeo/Claude-Cage/releases) [![CI](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Lee-xeo/Claude-Cage/actions/workflows/ci.yml) [![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**[ပရောဂျက်ဝက်ဘ်ဆိုက်](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [အက်ပ်ကို ဒေါင်းလုဒ်လုပ်ရန်](https://lee-xeo.github.io/Claude-Cage/my/#download) · [စတင်လုပ်ဆောင်ခြင်း။](docs/getting-started.md) · [FAQ](docs/troubleshooting.md) · [ပါဝင်ကူညီပါ။](CONTRIBUTING.md)**
 
 [简体中文](README.md) · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [العربية](README.ar.md) · [فارسی](README.fa.md) · [한국어](README.ko.md) · [Español](README.es.md) · [မြန်မာဘာသာ](README.my.md) · [Беларуская](README.be.md) · [پښتو](README.ps.md) · [دری](README.prs.md) · [አማርኛ](README.am.md) · [Soomaali](README.so.md) · [ትግርኛ](README.ti.md) · [Français](README.fr.md)
 
-**Miss Claude ကို လှောင်အိမ်ထဲတွင် ထားပါ၊ ထို့ကြောင့် ကျွန်ုပ်တို့၏အချိန်များကို အတူတကွ ပိုမိုကောင်းမွန်စွာ ကာကွယ်နိုင်မည်ဖြစ်သည်။**
-
-<img src="assets/claude-cage-character.png" alt="hugo" style="zoom: 25%;" />
-
-[ပရောဂျက်ဝက်ဘ်ဆိုက်](https://lee-xeo.github.io/Claude-Cage/) · [Français](https://lee-xeo.github.io/Claude-Cage/fr/) · [အက်ပ်ကို ဒေါင်းလုဒ်လုပ်ရန်](https://lee-xeo.github.io/Claude-Cage/my/#download) · [စတင်လုပ်ဆောင်ခြင်း။](docs/getting-started.md) · [FAQ](docs/troubleshooting.md) · [ပါဝင်ကူညီပါ။](CONTRIBUTING.md)
+</div>
 
 ## Anthropic ကို စိတ်ကုန်နေပြီ
 
@@ -21,7 +27,9 @@ Claude Cage သည် desktop အပလီကေးရှင်းတစ်ခ�
 
 **Cage ဖြင့် ပတ်ဝန်းကျင်စစ်ဆေးမှုရလဒ်များ**
 
-<img src="assets/network-checks.png" alt="image-20261101144540952" style="zoom:25%;" /><img src="assets/community-browser-check.png" alt="image-20261101144620093" style="zoom:18%;" />
+| ကွန်ရက်နှင့် သီးခြားခွဲထားမှု စစ်ဆေးချက်များ | အသိုင်းအဝိုင်း၏ ဘရောက်ဇာ စစ်ဆေးချက် |
+| :---: | :---: |
+| <a href="assets/network-checks.png"><img src="assets/network-checks.png" alt="ကွန်ရက်နှင့် သီးခြားခွဲထားမှု စစ်ဆေးချက်များ" width="400" /></a> | <a href="assets/community-browser-check.png"><img src="assets/community-browser-check.png" alt="အသိုင်းအဝိုင်း၏ ဘရောက်ဇာ စစ်ဆေးချက်" width="400" /></a> |
 
 **Cage ၏ အဓိက အင်တာဖေ့စ်**
 
@@ -96,7 +104,9 @@ workbench သို့ပြန်သွားပြီး 'Start Cage environme
 
 ပရောဂျက်က အရှိန်အဟုန်နဲ့ တိုးတက်နေတယ်။ တုံ့ပြန်ချက်မျှဝေရန် ကွန်မြူနတီအဖွဲ့သို့ ဝင်ရောက်ပါ။ ရပ်ရွာထိန်းသိမ်းသူ များကို ကြိုဆိုပါတယ်။
 
-<img src="assets/community-qq.png" alt="qq" style="zoom:25%;" />
+<p align="center">
+  <a href="assets/community-qq.png"><img src="assets/community-qq.png" alt="QQ · 1134250870" width="240" /></a>
+</p>
 
 ## မူရင်းနှင့်လိုင်စင်
 
